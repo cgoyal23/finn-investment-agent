@@ -25,3 +25,13 @@
 The browser-control environment is unavailable in this session, so exact-device visual testing and the real Google popup are not claimed as tested. Automated security tests use test keys. The historical disclosure library and source-extract fallback remain transparent; this release does not add a continuous exchange feed, background phone notifications, durable note sync or a complete four-quarter guidance ledger.
 
 The finance guide and comparison panel use deterministic calculations. No chart movement is presented as a causal explanation or a prediction.
+
+## Production address
+
+https://finn-investment-agent.vercel.app
+
+Vercel deployment `dpl_2enD5T6YaWVLpUBswCNpM54fLMza` reported READY and assigned the stable production alias. Runtime source commit: `584e9af`. The Vercel account was connected by the owner through the CLI device flow.
+
+## Live checks
+
+The stable production URL returned HTTP 200 for the app, login page, status and authentication configuration endpoints. Gemini was configured and a production research request returned a cited answer. Cross-origin login and logout requests returned HTTP 403 as expected. Authentication configuration currently reports `configured: false` because the Google Client ID is still pending. No claim of a completed real Google sign-in is made.

@@ -1,3 +1,7 @@
+# Second prototype verification
+
+See `RELEASE_V2.md` for the current Next.js/Vercel release: 17 tests passed, the production build passed, six migrated API smoke checks passed, the live Vercel page/research endpoint passed, and cross-origin authentication requests were rejected. Direct Google sign-in is not activated without a Google Client ID, and final browser testing remains pending.
+
 # Prototype verification — 28 October 2026
 
 ## Completed

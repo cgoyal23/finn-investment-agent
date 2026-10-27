@@ -10,7 +10,7 @@ Google requires a web OAuth Client ID. The Vercel account connection does not cr
 2. Create/select a Google Cloud project for FINN.
 3. If prompted, configure the Google Auth Platform branding: app name **FINN**, your support email, and audience. While the app is in Testing, add the people who will test login as test users where Google requires it.
 4. Create a client with application type **Web application**.
-5. Add the **actual deployed FINN origin** under Authorized JavaScript origins. Use only `https://` plus the hostname, with no path. The final Vercel URL is provided in the release report. The old origin is not required unless you also want the old deployment to support Google sign-in.
+5. Add the **actual deployed FINN origin** under Authorized JavaScript origins. Use only `https://` plus the hostname, with no path. The production origin is `https://finn-investment-agent.vercel.app`. The old origin is not required unless you also want the old deployment to support Google sign-in.
 6. For local testing, add `http://localhost` and `http://localhost:3000` as needed. Use localhost in the browser for Google tests.
 7. Copy the Client ID ending in `.apps.googleusercontent.com`. The popup flow does **not** need a client secret.
 8. Configure `GOOGLE_CLIENT_ID` in Vercel, and redeploy. `SESSION_SECRET` is a separate, randomly generated server secret.

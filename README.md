@@ -4,9 +4,9 @@ A mobile-first investment research desk built for the ENAM AI Engineer Build Cha
 
 ## Prototype
 
-- **Hosted preview:** https://finn-investment-desk-cg.racingkoi36.chatgpt.site
+- **Hosted preview:** https://finn-investment-agent.vercel.app
 - **Source:** https://github.com/cgoyal23/finn-investment-agent
-- Hosting is owner-private during development. A reviewer must be granted access, or the owner must explicitly publish a public demo, before submission. A URL alone does not grant access.
+- The current primary deployment is on Vercel. Confirm external reviewer access before submission. Google sign-in activation still requires the owner’s Google Client ID.
 
 ## Try this first
 
@@ -68,7 +68,7 @@ GEMINI_MODEL=gemini-3.5-flash-lite
 
 Use a model your Google project can access; model availability and free quotas can change. The configured model was verified with the provided account during development. The default is a starting point, not a claim that every model is available on every account.
 
-`.dev.vars`, `.env.local` and other `.env*` files are ignored. `.env.example` is an explicit non-secret exception. Hosted secrets are configured through Sites runtime settings, not source files or browser storage. Do not commit a key.
+`.dev.vars`, `.env.local` and other `.env*` files are ignored. `.env.example` is an explicit non-secret exception. Hosted secrets are configured through Vercel’s server environment settings, not source files or browser storage. Do not commit a key.
 
 ## Second prototype features
 

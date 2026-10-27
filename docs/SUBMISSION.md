@@ -12,7 +12,7 @@ Deadline in the brief: Sunday, 1 November 2026. No deadline time was specified i
 
 ## Current access
 
-The GitHub repository was created by the user at `https://github.com/cgoyal23/finn-investment-agent` and reported public during setup. The hosted Sites project is owner-private during development. Do not submit a private URL without granting the reviewer access or explicitly choosing an appropriate public demo configuration.
+The GitHub repository was created by the user at `https://github.com/cgoyal23/finn-investment-agent` and reported public during setup. The current primary prototype is `https://finn-investment-agent.vercel.app`. Its deployment protection and Google sign-in must be checked in a fresh external browser before submission. The original host is a legacy prototype.
 
 ## Covering-note draft content
 
