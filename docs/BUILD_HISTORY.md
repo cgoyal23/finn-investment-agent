@@ -44,3 +44,7 @@ Use numerical invariants and source-integrity checks, not tests that merely mirr
 ## Reliability refinement
 
 Repeated provider checks exposed timeouts for the initially selected Gemini model. The app was configured to use `gemini-3.5-flash-lite` after a successful direct request and a passing end-to-end evidence-analysis test. A supplied fictional record for a non-demo ticker tested arithmetic and abstention without claiming real issuer facts.
+
+## Second prototype direction
+
+The user requested a more attractive, understandable interface, more useful features, Google authentication instead of the former platform login, and a hosting address without the former provider suffix. The app gained comparison, a research notebook, source-linked timelines, a plain-language learning guide, interactive chart markers and new onboarding. Standard Next.js was added as the primary deployment path for Vercel. The user completed Vercel’s device authorization; no password or OTP was collected by the app. Direct Google login is implemented but still needs a web OAuth Client ID and an actual account test.

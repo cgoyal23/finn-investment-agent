@@ -39,12 +39,13 @@ Use Node.js 22.13 or newer.
 
 ```sh
 npm ci
-cp .env.example .dev.vars
-# Edit .dev.vars locally and insert your own Gemini API key.
+# Copy the example into Next.js local configuration:
+cp .env.example .env.local
+# Edit .env.local locally and insert your own Gemini API key.
 npm run dev
 ```
 
-Open the local address printed by the development server, usually `http://127.0.0.1:5173`.
+Open the local address printed by the development server, usually `http://127.0.0.1:3000`.
 
 ```sh
 npm test
@@ -67,13 +68,17 @@ GEMINI_MODEL=gemini-3.5-flash-lite
 
 Use a model your Google project can access; model availability and free quotas can change. The configured model was verified with the provided account during development. The default is a starting point, not a claim that every model is available on every account.
 
-`.dev.vars` and `.env*` are ignored. `.env.example` is an explicit non-secret exception. Hosted secrets are configured through Sites runtime settings, not source files or browser storage. Do not commit a key.
+`.dev.vars`, `.env.local` and other `.env*` files are ignored. `.env.example` is an explicit non-secret exception. Hosted secrets are configured through Sites runtime settings, not source files or browser storage. Do not commit a key.
+
+## Second prototype features
+
+Compare up to four companies on a common baseline; save research and its evidence into a searchable notebook; inspect company-event timelines; learn financial terms using plain-English examples; and explore a margin calculator. The Google sign-in screen uses Google Identity Services, not a simulated email-code flow. The owner’s Client ID is required to activate it. See [Google setup](docs/GOOGLE_SIGN_IN_SETUP.md) and [Second prototype release notes](docs/RELEASE_V2.md).
 
 ## Platform and portability
 
-The interface is React + TypeScript, with Vinext and Vite, using the Next.js App Router conventions. Backend routes run in Cloudflare Workers through Sites. The supplied Sites build integration is retained. There is no Python server in this prototype.
+The current interface is React + TypeScript using standard Next.js. Vercel is the primary deployment target so the owner can use a different production hostname. Server credentials belong in Vercel’s environment settings. `GOOGLE_CLIENT_ID` is the public web-client identifier; `SESSION_SECRET` is a separate private random value. Once configured, live AI requires a verified Google session.
 
-Sites deploys the built Worker and assets. For another Cloudflare account, adapt the environment and hosting configuration and provision the same secret. Migration to a different host needs runtime-binding changes; deployment is not advertised as a one-command Vercel export.
+The original Sites/Vinext Worker build is retained as a legacy path via `dev:sites`, `build:sites` and `start:sites`; its hosting manifest has not been repurposed. The primary app does not use the former platform’s sign-in helper.
 
 Data providers and report publishers can be unavailable or block automated access. FINN returns an explicit error or a dated saved record; it does not invent a current value.
 

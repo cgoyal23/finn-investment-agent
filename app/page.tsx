@@ -37,6 +37,9 @@ import {
   BookOpen,
   Command,
   Flag,
+  GitCompareArrows,
+  NotebookPen,
+  CircleHelp,
 } from "lucide-react";
 import {
   companies,
@@ -58,7 +61,23 @@ import {
   type PricePoint,
 } from "@/lib/market";
 
-type View = "briefing" | "portfolio" | "research" | "theses" | "alerts";
+import {
+  CompareExplorer,
+  ResearchNotebook,
+  LearnPanel,
+  WelcomeGuide,
+  EventTimeline,
+} from "@/components/finn/explore";
+import { AccountMenu } from "@/components/finn/account";
+import type { ResearchNote } from "@/lib/insights";
+type View =
+  | "briefing"
+  | "portfolio"
+  | "research"
+  | "theses"
+  | "alerts"
+  | "compare"
+  | "notebook";
 type Thesis = { id: string; symbol: string; text: string; tags: string[] };
 type ResearchAnswer = {
   mode: string;
@@ -77,6 +96,8 @@ const navItems = [
   { id: "research", label: "Research", icon: Search },
   { id: "theses", label: "Thesis watch", icon: Target },
   { id: "alerts", label: "Alerts", icon: Bell },
+  { id: "compare", label: "Compare", icon: GitCompareArrows },
+  { id: "notebook", label: "Notebook", icon: NotebookPen },
 ];
 function money(n: number | undefined) {
   return n === undefined
@@ -218,11 +239,13 @@ function PriceChart({
   range,
   onRange,
   events = true,
+  onFiling,
 }: {
   series: MarketSeries;
   range: string;
   onRange: (v: string) => void;
   events?: boolean;
+  onFiling?: (filing: Filing) => void;
 }) {
   const pts = rangePoints(series.points, range);
   const [hover, setHover] = useState<number | null>(null);
@@ -375,7 +398,21 @@ function PriceChart({
         {markerFilings.map((f) => {
           const i = pts.findIndex((p) => p.date >= f.date);
           return (
-            <g key={f.id}>
+            <g
+              key={f.id}
+              role="button"
+              tabIndex={0}
+              aria-label={`Open ${f.symbol} results filing dated ${f.date}`}
+              onClick={() => onFiling?.(f)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onFiling?.(f);
+                }
+              }}
+              style={{ cursor: "pointer" }}
+            >
+              <title>Open the company filing</title>
               <line
                 x1={x(i)}
                 x2={x(i)}
@@ -487,6 +524,8 @@ export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [toast, setToast] = useState("");
   const [sourceOpen, setSourceOpen] = useState(false);
+  const [learnOpen, setLearnOpen] = useState(false);
+  const [notes, setNotes] = useState<ResearchNote[]>([]);
   const [selectedFiling, setSelectedFiling] = useState<Filing | null>(null);
   const [watchlist, setWatchlist] = useState(companies.map((c) => c.symbol));
   const [saved, setSaved] = useState<string[]>([]);
@@ -498,6 +537,7 @@ export default function Home() {
     market: true,
   });
   const [loaded, setLoaded] = useState(false);
+  const [storageKey, setStorageKey] = useState("finn-v1");
   const [days, setDays] = useState(0);
   const [category, setCategory] = useState("All");
   const [filingSymbol, setFilingSymbol] = useState("All");
@@ -529,21 +569,59 @@ export default function Home() {
   const [thesisTags, setThesisTags] = useState("growth, margin");
   const answerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    try {
-      const s = JSON.parse(localStorage.getItem("finn-v1") || "null");
-      if (s) {
-        setWatchlist(s.watchlist || companies.map((c) => c.symbol));
-        setSaved(s.saved || []);
-        setTheses(s.theses || defaultTheses);
-        if (s.settings)
-          setSettings({
-            ...s.settings,
-            price: Math.max(0.5, Number(s.settings.price) || 4),
-            volume: Math.max(1, Number(s.settings.volume) || 2),
-          });
-      }
-    } catch {}
-    setLoaded(true);
+    const restoreDesk = (userId?: string) => {
+      const key = userId ? "finn-v2-" + userId : "finn-v1";
+      setStorageKey(key);
+      try {
+        const s = JSON.parse(localStorage.getItem(key) || "null");
+        if (s) {
+          if (Array.isArray(s.watchlist))
+            setWatchlist(
+              s.watchlist.filter((v: unknown) => typeof v === "string"),
+            );
+          if (Array.isArray(s.saved))
+            setSaved(s.saved.filter((v: unknown) => typeof v === "string"));
+          if (Array.isArray(s.notes))
+            setNotes(
+              s.notes.filter(
+                (n: any) =>
+                  n &&
+                  typeof n.id === "string" &&
+                  typeof n.title === "string" &&
+                  typeof n.text === "string" &&
+                  typeof n.symbol === "string" &&
+                  typeof n.createdAt === "string" &&
+                  Array.isArray(n.sources),
+              ),
+            );
+          if (Array.isArray(s.theses))
+            setTheses(
+              s.theses.filter(
+                (t: any) =>
+                  t &&
+                  typeof t.id === "string" &&
+                  typeof t.text === "string" &&
+                  typeof t.symbol === "string" &&
+                  Array.isArray(t.tags),
+              ),
+            );
+          if (s.settings)
+            setSettings({
+              price: Math.min(10, Math.max(0.5, Number(s.settings.price) || 4)),
+              volume: Math.min(5, Math.max(1, Number(s.settings.volume) || 2)),
+              categories: Array.isArray(s.settings.categories)
+                ? s.settings.categories
+                : [],
+              market: s.settings.market !== false,
+            });
+        }
+      } catch {}
+      setLoaded(true);
+    };
+    fetch("/api/auth")
+      .then((r) => r.json())
+      .then((d: any) => restoreDesk(d.user?.id))
+      .catch(() => restoreDesk());
     const h = location.hash.slice(1);
     if (navItems.some((n) => n.id === h)) setView(h as View);
     fetch("/api/status")
@@ -559,6 +637,7 @@ export default function Home() {
         setSearchOpen(false);
         setSelectedFiling(null);
         setSourceOpen(false);
+        setLearnOpen(false);
         setNewThesis(false);
         setMenuOpen(false);
       }
@@ -567,17 +646,64 @@ export default function Home() {
     return () => document.removeEventListener("keydown", key);
   }, []);
   useEffect(() => {
-    if (loaded)
-      localStorage.setItem(
-        "finn-v1",
-        JSON.stringify({ watchlist, saved, theses, settings }),
-      );
-  }, [watchlist, saved, theses, settings, loaded]);
+    if (loaded) {
+      try {
+        localStorage.setItem(
+          storageKey,
+          JSON.stringify({ watchlist, saved, theses, settings, notes }),
+        );
+      } catch {
+        setToast(
+          "Browser storage is full or unavailable. Export your notebook to keep a copy.",
+        );
+      }
+    }
+  }, [watchlist, saved, theses, settings, notes, loaded, storageKey]);
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(""), 4200);
     return () => clearTimeout(t);
   }, [toast]);
+  useEffect(() => {
+    if (
+      !searchOpen &&
+      !sourceOpen &&
+      !learnOpen &&
+      !newThesis &&
+      !selectedFiling
+    )
+      return;
+    const opener = document.activeElement as HTMLElement | null;
+    const modal = document.querySelector<HTMLElement>(
+      '.modal-backdrop [role="dialog"]',
+    );
+    if (!modal) return;
+    const controls = () =>
+      Array.from(
+        modal.querySelectorAll<HTMLElement>(
+          'button:not([disabled]),a[href],input:not([disabled]),textarea,select,[tabindex="0"]',
+        ),
+      ).filter((el) => el.getClientRects().length > 0);
+    controls()[0]?.focus();
+    const trap = (event: KeyboardEvent) => {
+      if (event.key !== "Tab") return;
+      const list = controls(),
+        first = list[0],
+        last = list.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    document.addEventListener("keydown", trap);
+    return () => {
+      document.removeEventListener("keydown", trap);
+      opener?.focus();
+    };
+  }, [searchOpen, sourceOpen, learnOpen, newThesis, selectedFiling]);
   const go = (v: View) => {
     setView(v);
     setMenuOpen(false);
@@ -803,6 +929,26 @@ export default function Home() {
     setDocumentName(file.name);
     setToast("Source text added. Ask a question about this document.");
   };
+  const saveAnswer = () => {
+    if (!answer || answer.mode === "error" || answer.mode === "needs-sources")
+      return;
+    setNotes((items) => [
+      {
+        id: crypto.randomUUID(),
+        symbol: researchSymbol,
+        title: question.slice(0, 120) || "Research insight",
+        text:
+          answer.answer +
+          (answer.limitations
+            ? "\n\nEvidence gaps: " + answer.limitations
+            : ""),
+        createdAt: new Date().toISOString(),
+        sources: answer.citations.map((c) => ({ title: c.title, url: c.url })),
+      },
+      ...items,
+    ]);
+    setToast("Answer and source links saved to your notebook.");
+  };
   return (
     <div className="app-shell">
       <aside className={"sidebar " + (menuOpen ? "open" : "")}>
@@ -886,10 +1032,10 @@ export default function Home() {
           </button>
         </div>
         <div className="sidebar-bottom">
-          <div className="avatar">CG</div>
+          <div className="avatar">F</div>
           <div>
             <strong>My research desk</strong>
-            <span>Personal prototype</span>
+            <span>Sample research workspace</span>
           </div>
           <button
             className="icon-button"
@@ -931,6 +1077,13 @@ export default function Home() {
             <kbd>⌘ K</kbd>
           </button>
           <div className="topbar-actions">
+            <button
+              className="icon-button help-button"
+              onClick={() => setLearnOpen(true)}
+              aria-label="Finance in plain English"
+            >
+              <CircleHelp size={20} />
+            </button>
             <button className="data-status" onClick={() => setSourceOpen(true)}>
               <span className="tiny-dot" />
               Research preview
@@ -943,10 +1096,39 @@ export default function Home() {
               <Bell size={19} />
               {settings.market && marketAlerts.length > 0 && <i />}
             </button>
-            <span className="avatar top-avatar">CG</span>
+            <AccountMenu />
           </div>
         </header>
         <main>
+          <div className="desk-tools">
+            <span>YOUR RESEARCH DESK</span>
+            <div>
+              <button onClick={() => go("compare")}>
+                <GitCompareArrows size={14} />
+                Compare companies
+              </button>
+              <button onClick={() => go("notebook")}>
+                <NotebookPen size={14} />
+                Notebook <small>{notes.length}</small>
+              </button>
+              <button onClick={() => setLearnOpen(true)}>
+                <BookOpen size={14} />
+                Explain a term
+              </button>
+            </div>
+          </div>
+          {view === "compare" && (
+            <CompareExplorer markets={allMarkets} onResearch={openResearch} />
+          )}
+          {view === "notebook" && (
+            <ResearchNotebook
+              notes={notes}
+              onChange={setNotes}
+              onResearch={openResearch}
+              onToast={setToast}
+            />
+          )}
+
           {view === "briefing" && (
             <>
               <div className="page-heading">
@@ -955,10 +1137,11 @@ export default function Home() {
                     A CLEARER VIEW OF YOUR INVESTMENTS
                   </div>
                   <h1>
-                    Your portfolio, in focus<span>.</span>
+                    Your companies, clearly<span>.</span>
                   </h1>
                   <p>
-                    The moves worth understanding. The evidence behind them.
+                    See what changed, understand the numbers, and check the
+                    evidence.
                   </p>
                 </div>
                 <button
@@ -980,6 +1163,10 @@ export default function Home() {
                   About the data <Info size={13} />
                 </button>
               </div>
+              <WelcomeGuide
+                onGo={(v) => go(v as View)}
+                onLearn={() => setLearnOpen(true)}
+              />
               <div className="summary-grid">
                 <div className="summary-card">
                   <span className="summary-icon">
@@ -1359,6 +1546,7 @@ export default function Home() {
                     series={market}
                     range={range}
                     onRange={setRange}
+                    onFiling={setSelectedFiling}
                   />
                 )}
                 <div className="chart-caption">
@@ -1502,6 +1690,7 @@ export default function Home() {
                           series={market}
                           range={range}
                           onRange={setRange}
+                          onFiling={setSelectedFiling}
                         />
                         <div className="chart-metrics">
                           <div>
@@ -1633,7 +1822,7 @@ export default function Home() {
                     FOLLOW A QUESTION ALL THE WAY TO THE SOURCE
                   </div>
                   <h1>
-                    A closer look<span>.</span>
+                    Understand a company<span>.</span>
                   </h1>
                   <p>
                     Research a company through its own reports and management
@@ -1720,7 +1909,12 @@ export default function Home() {
                 role="tablist"
                 aria-label="Research sections"
               >
-                {["Overview", "Promises vs. results", "Sources"].map((t) => (
+                {[
+                  "Overview",
+                  "Promises vs. results",
+                  "Timeline",
+                  "Sources",
+                ].map((t) => (
                   <button
                     key={t}
                     role="tab"
@@ -1934,6 +2128,12 @@ export default function Home() {
                         </button>
                       </section>
                     ))}
+                  {researchTab === "Timeline" && (
+                    <EventTimeline
+                      symbol={researchSymbol}
+                      onOpen={setSelectedFiling}
+                    />
+                  )}
                   {researchTab === "Sources" && (
                     <section className="panel">
                       <div className="section-header">
@@ -2111,6 +2311,16 @@ export default function Home() {
                           )}
                         </div>
                         <div className="answer-copy">{answer.answer}</div>
+                        {answer.mode !== "error" &&
+                          answer.mode !== "needs-sources" && (
+                            <button
+                              className="button secondary save-answer"
+                              onClick={saveAnswer}
+                            >
+                              <Bookmark size={14} />
+                              Save answer & sources
+                            </button>
+                          )}
                         {answer.limitations && (
                           <p className="answer-limitation">
                             <Info size={14} />
@@ -2344,7 +2554,7 @@ export default function Home() {
                     YOU DECIDE WHAT DESERVES ATTENTION
                   </div>
                   <h1>
-                    Your signal. Your rules<span>.</span>
+                    Choose what matters<span>.</span>
                   </h1>
                   <p>
                     Set thresholds for this research desk. Changes are saved in
@@ -2561,7 +2771,7 @@ export default function Home() {
         </main>
       </div>
       <nav className="mobile-nav" aria-label="Mobile navigation">
-        {navItems.map((n) => (
+        {navItems.slice(0, 5).map((n) => (
           <button
             key={n.id}
             className={view === n.id ? "active" : ""}
@@ -2784,6 +2994,7 @@ export default function Home() {
           </section>
         </div>
       )}
+      {learnOpen && <LearnPanel onClose={() => setLearnOpen(false)} />}
       {sourceOpen && (
         <div className="modal-backdrop" onClick={() => setSourceOpen(false)}>
           <section

@@ -1,10 +1,19 @@
-import { env } from "cloudflare:workers";
+import { runtimeValue } from "@/lib/runtime-env";
+import { authConfigured, currentUser } from "@/lib/auth";
 import { evidence } from "@/lib/finn-data";
 import { discoverDocuments, safePrimaryUrl } from "@/lib/discovery";
 const resultCache = new Map<string, { time: number; value: any }>();
 const requestBuckets = new Map<string, { start: number; count: number }>();
 export async function POST(request: Request) {
   try {
+    if (authConfigured() && !(await currentUser(request)))
+      return Response.json(
+        {
+          error: "Please sign in with Google to use live AI research.",
+          loginRequired: true,
+        },
+        { status: 401 },
+      );
     const body = (await request.json()) as {
       symbol: string;
       question: string;
@@ -38,11 +47,8 @@ export async function POST(request: Request) {
           "Results filing",
         ].includes(e.kind),
     );
-    const key = (env as any).GEMINI_API_KEY || process.env.GEMINI_API_KEY;
-    const model =
-      (env as any).GEMINI_MODEL ||
-      process.env.GEMINI_MODEL ||
-      "gemini-3.5-flash-lite";
+    const key = runtimeValue("GEMINI_API_KEY");
+    const model = runtimeValue("GEMINI_MODEL") || "gemini-3.5-flash-lite";
     const cacheKey = JSON.stringify([symbol, question, supplied || "", model]);
     const cached = resultCache.get(cacheKey);
     if (cached && Date.now() - cached.time < 3600000)

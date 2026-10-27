@@ -46,3 +46,7 @@ yarn-error.log*
 
 # Public non-secret configuration example
 !.env.example
+
+# Vercel local project metadata
+.vercel/
+.vercel

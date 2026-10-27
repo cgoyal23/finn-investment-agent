@@ -1,3 +1,9 @@
+# Current platform update
+
+The second prototype uses standard Next.js as the primary runtime and is prepared for Vercel hosting at the user’s request. `npm run dev`, `npm run build` and `npm start` now use Next.js. Legacy Sites/Worker scripts remain available with the `:sites` suffix; the original hosting integration is retained rather than silently repurposed. Server environment access is request-scoped for the old Worker and uses process environment on Next.js.
+
+Direct Google Identity Services replaces application use of the previous hosting sign-in. See `GOOGLE_SIGN_IN_SETUP.md` for configuration and security. Production activation still needs the owner’s Google Client ID.
+
 # Architecture and decisions
 
 ## Product point of view
@@ -44,7 +50,7 @@ Citation validation establishes that the cited source was supplied; it is not a 
 
 ## State and cost
 
-Browser preferences persist in localStorage. Price refresh uses a 15-minute isolate-local cache. Research uses a one-hour isolate-local response cache, capped at 100 entries. These caches may be lost or duplicated across Worker isolates and are not durable.
+Browser preferences and notebook entries persist in localStorage, scoped separately to a verified Google user or the sample desk. Price refresh uses a 15-minute isolate-local cache. Research uses a one-hour isolate-local response cache, capped at 100 entries. These caches may be lost or duplicated across Worker isolates and are not durable.
 
 The research endpoint has per-identity, per-isolate request throttling. It is sufficient for owner-private prototyping, not abuse-proof public deployment. Before public release, add a durable quota/budget control, visitor authorization and maximum daily spend.
 
