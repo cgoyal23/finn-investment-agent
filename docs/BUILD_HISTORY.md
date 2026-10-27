@@ -48,3 +48,5 @@ Repeated provider checks exposed timeouts for the initially selected Gemini mode
 ## Second prototype direction
 
 The user requested a more attractive, understandable interface, more useful features, Google authentication instead of the former platform login, and a hosting address without the former provider suffix. The app gained comparison, a research notebook, source-linked timelines, a plain-language learning guide, interactive chart markers and new onboarding. Standard Next.js was added as the primary deployment path for Vercel. The user completed Vercel’s device authorization; no password or OTP was collected by the app. Direct Google login is implemented but still needs a web OAuth Client ID and an actual account test.
+
+The user supplied the Google web-client identifier after creating a Web application client. It was configured in production, the application was redeployed, and server-side challenge/invalid-token/anonymous-research checks passed. No Google password, OTP or client secret was requested.

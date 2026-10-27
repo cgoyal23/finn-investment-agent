@@ -35,3 +35,7 @@ Vercel deployment `dpl_2enD5T6YaWVLpUBswCNpM54fLMza` reported READY and assigned
 ## Live checks
 
 The stable production URL returned HTTP 200 for the app, login page, status and authentication configuration endpoints. Gemini was configured and a production research request returned a cited answer. Cross-origin login and logout requests returned HTTP 403 as expected. Authentication configuration currently reports `configured: false` because the Google Client ID is still pending. No claim of a completed real Google sign-in is made.
+
+## Google configuration activation
+
+The owner supplied the Google Web Client ID, which was configured in Vercel. Deployment `dpl_23yQip6wx6PKcmZ38HueNVCQUH43` reported READY. The production auth endpoint now reports `configured: true` and returns a nonce and CSRF value with a Secure, HttpOnly challenge cookie and no-store caching. Invalid Google credentials return HTTP 401. Anonymous live research returns HTTP 401. A successful real Google account sign-in remains a human browser check; this update supersedes the earlier pending-configuration note.

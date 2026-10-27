@@ -6,7 +6,7 @@ A mobile-first investment research desk built for the ENAM AI Engineer Build Cha
 
 - **Hosted preview:** https://finn-investment-agent.vercel.app
 - **Source:** https://github.com/cgoyal23/finn-investment-agent
-- The current primary deployment is on Vercel. Confirm external reviewer access before submission. Google sign-in activation still requires the owner’s Google Client ID.
+- The current primary deployment is on Vercel. Confirm external reviewer access before submission. Google sign-in is configured. Complete a real account sign-in at `/login` to verify the full browser flow.
 
 ## Try this first
 
