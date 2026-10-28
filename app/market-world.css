@@ -1022,3 +1022,25 @@ body {
     font-size: 9px;
   }
 }
+@media (max-width: 700px) {
+  .market-city-svg {
+    min-width: 0;
+    width: 100%;
+  }
+  .world-intro h1 {
+    font-size: 40px;
+    letter-spacing: -1.8px;
+  }
+  .world-company-nav > button {
+    min-height: 40px;
+    padding: 10px 12px;
+  }
+  .world-scene-hint {
+    line-height: 1.8;
+  }
+}
+@media (max-width: 370px) {
+  .world-intro h1 {
+    font-size: 35px;
+  }
+}
