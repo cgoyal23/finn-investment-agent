@@ -29,3 +29,7 @@ This log is updated with the actual build/deployment result when it is available
 ### Daily review upgrade — 28 October 2026
 
 19 automated tests pass. New cases verify that missing, same-date, older and invalid-baseline market data cannot imply a new price change; follow-ups due today are included; resolved questions stay resolved; exports retain review metadata. Local production compilation and TypeScript passed using `npm run build -- --webpack`; local Turbopack was blocked by sandbox process-port restrictions. Browser access host remains unavailable, so this upgrade has no new visual QA claim.
+
+### Company discovery and visual redesign — 28 October 2026
+
+23 tests pass. API-level checks (not browser clicks): Wipro/Toyota multi-exchange search; Samsung 245 KRW sessions, Wipro 248 INR sessions and Apple 251 USD sessions at test time; Wipro primary report discovery and five dated announcements. SEC discovery returned 403 and its failure state was exercised. Tests cover symbol validation, exchange preservation, arbitrary remote equities, safe SEC URL construction, announcement dates and exclusion of aggregator summary text. The local homepage SSR includes the new chart stage and pause control. Browser host unavailable and native Chrome timeout prevent visual/browser interaction verification.

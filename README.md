@@ -111,3 +111,10 @@ Charts show **unadjusted closing prices**, not total returns. Corporate actions 
 ## Acknowledgements
 
 Primary documents belong to the issuing companies. Market data is attributed to Yahoo Finance. This repository includes the Sites/Vinext starter and dependency licence notices. Company names identify public issuers and do not imply endorsement.
+
+
+### Company lookup and market-desk design
+
+Search by company name across the provider’s supported stock exchanges. Results identify the listing; selecting a company loads currency-correct price history, calculated price/volume observations, available official disclosures and a source-grounded AI research action. This extends the research flow beyond the 18-company mock portfolio. Document coverage varies by exchange; inaccessible reports are not replaced with fabricated facts. See [release notes](docs/RELEASE_V3.md).
+
+The dashboard now has a navy-and-mint market stage, a real-price featured chart, a dated moving price ribbon with pause/resume, and short opening transitions. Reduced-motion preferences are respected. Visual browser QA is pending because the browser connection is unavailable in the build environment.

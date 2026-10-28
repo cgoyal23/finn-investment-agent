@@ -1,3 +1,4 @@
+import { validCompanySymbol } from "@/lib/company-directory";
 import { runtimeValue } from "@/lib/runtime-env";
 import { authConfigured, currentUser } from "@/lib/auth";
 import { evidence } from "@/lib/finn-data";
@@ -23,7 +24,7 @@ export async function POST(request: Request) {
     const symbol = (body.symbol || "").toUpperCase();
     const question = (body.question || "").trim();
     if (
-      !/^[A-Z0-9&-]{1,24}$/.test(symbol) ||
+      !validCompanySymbol(symbol) ||
       !question ||
       question.length > 1500 ||
       (body.extract?.length || 0) > 50000
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
       return Response.json(
         {
           error:
-            "Use a valid NSE ticker, a question under 1,500 characters, and an extract under 50,000 characters.",
+            "Use a valid company ticker, a question under 1,500 characters, and an extract under 50,000 characters.",
         },
         { status: 400 },
       );
@@ -97,6 +98,7 @@ export async function POST(request: Request) {
         .filter(
           (d) =>
             d.kind === "Earnings-call transcript" ||
+            ["Annual report", "Financial statements"].includes(d.kind) ||
             /annual/i.test(d.title + " " + d.url),
         )
         .slice(0, 2);
@@ -106,9 +108,39 @@ export async function POST(request: Request) {
           const r = await fetch(doc.url, {
             signal: AbortSignal.timeout(10000),
             redirect: "error",
+            headers: {
+              "User-Agent":
+                "FINN educational research prototype (github.com/cgoyal23/finn-investment-agent)",
+            },
           });
           if (!r.ok || Number(r.headers.get("content-length") || 0) > 6000000)
             continue;
+          if (
+            new URL(doc.url).hostname === "www.sec.gov" &&
+            doc.url.startsWith("https://www.sec.gov/Archives/edgar/data/")
+          ) {
+            const html = await r.text();
+            if (html.length > 6000000) continue;
+            const text = html
+              .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+              .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
+              .replace(/<[^>]+>/g, " ")
+              .replace(/&nbsp;|&#160;/g, " ")
+              .replace(/&amp;/g, "&")
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, 35000);
+            if (text.length < 500) continue;
+            sourceList.push({
+              id: doc.id,
+              title: doc.title,
+              url: doc.url,
+              locator:
+                "Beginning of SEC HTML filing; extract is truncated to 35,000 characters. Later sections may be missing.",
+              facts: text,
+            });
+            continue;
+          }
           const bytes = new Uint8Array(await r.arrayBuffer());
           if (
             bytes.length > 6000000 ||

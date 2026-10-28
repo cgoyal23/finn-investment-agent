@@ -1,4 +1,11 @@
 "use client";
+import { CompanyLookup } from "@/components/finn/company-lookup";
+import { CompanyWorkspace } from "@/components/finn/company-workspace";
+import {
+  companyDirectory,
+  type CompanyIdentity,
+} from "@/lib/company-directory";
+import { MarketRibbon, MarketStage } from "@/components/finn/market-stage";
 import { DailyReview } from "@/components/finn/daily-review";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -100,14 +107,18 @@ const navItems = [
   { id: "compare", label: "Compare", icon: GitCompareArrows },
   { id: "notebook", label: "Notebook", icon: NotebookPen },
 ];
-function money(n: number | undefined) {
+function money(n: number | undefined, currency = "INR") {
   return n === undefined
     ? "—"
-    : new Intl.NumberFormat("en-IN", {
-        style: "currency",
-        currency: "INR",
-        maximumFractionDigits: 2,
-      }).format(n);
+    : !/^[A-Z]{3}$/.test(currency)
+      ? new Intl.NumberFormat("en-IN", { maximumFractionDigits: 2 }).format(n) +
+        " " +
+        currency
+      : new Intl.NumberFormat("en-IN", {
+          style: "currency",
+          currency,
+          maximumFractionDigits: 2,
+        }).format(n);
 }
 function changeText(n: number | null) {
   return n === null ? "—" : `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
@@ -130,8 +141,10 @@ function company(symbol: string) {
   return (
     companies.find((c) => c.symbol === symbol) || {
       symbol,
-      name: symbol,
-      sector: "NSE listed",
+      name: companyDirectory.find((c) => c.symbol === symbol)?.name || symbol,
+      sector:
+        companyDirectory.find((c) => c.symbol === symbol)?.exchange ||
+        "Company research",
       color: "#567763",
     }
   );
@@ -253,8 +266,19 @@ function PriceChart({
   const [showVolume, setShowVolume] = useState(true);
   const [showEvents, setShowEvents] = useState(true);
   const chartRef = useRef<SVGSVGElement>(null);
+  const [chartWidth, setChartWidth] = useState(860);
+  useEffect(() => {
+    if (!chartRef.current) return;
+    const observer = new ResizeObserver(([entry]) =>
+      setChartWidth(
+        Math.max(320, Math.min(860, Math.round(entry.contentRect.width))),
+      ),
+    );
+    observer.observe(chartRef.current);
+    return () => observer.disconnect();
+  }, []);
   useEffect(() => setHover(null), [series.symbol, range]);
-  const W = 860,
+  const W = chartWidth,
     H = 265,
     L = 12,
     R = 68,
@@ -290,13 +314,16 @@ function PriceChart({
     <div className="price-chart">
       <div className="chart-toolbar">
         <div>
-          <span className="price-big">{money(chosen?.close)}</span>
+          <span className="price-big">
+            {money(chosen?.close, series.currency)}
+          </span>
           <span className={"price-change " + (up ? "positive" : "negative")}>
             {changeText(percentChange(pts.at(-1)!.close, pts[0].close))}{" "}
             <span className="muted">in {range.toLowerCase()}</span>
           </span>
           <p className="chart-date">
-            {chosen ? shortDate(chosen.date) : ""} · Unadjusted close · INR
+            {chosen ? shortDate(chosen.date) : ""} · Unadjusted close ·{" "}
+            {series.currency}
           </p>
         </div>
         <div className="range-switch" aria-label="Chart range">
@@ -304,6 +331,7 @@ function PriceChart({
             <button
               key={r}
               className={range === r ? "active" : ""}
+              aria-pressed={range === r}
               onClick={() => onRange(r)}
             >
               {r}
@@ -486,18 +514,22 @@ function PriceChart({
         <div className="chart-legends">
           <button
             className={showVolume ? "selected" : ""}
+            aria-pressed={showVolume}
             onClick={() => setShowVolume(!showVolume)}
           >
             <span className="legend-square" />
             Volume
           </button>
-          <button
-            className={showEvents ? "selected" : ""}
-            onClick={() => setShowEvents(!showEvents)}
-          >
-            <span className="legend-dot" />
-            Filings {markerFilings.length ? `(${markerFilings.length})` : ""}
-          </button>
+          {events && (
+            <button
+              className={showEvents ? "selected" : ""}
+              aria-pressed={showEvents}
+              onClick={() => setShowEvents(!showEvents)}
+            >
+              <span className="legend-dot" />
+              Filings {markerFilings.length ? `(${markerFilings.length})` : ""}
+            </button>
+          )}
         </div>
         <label className="date-scrubber">
           <span>Explore</span>
@@ -548,7 +580,8 @@ export default function Home() {
   const [sector, setSector] = useState("All");
   const [sort, setSort] = useState("name");
   const [researchSymbol, setResearchSymbol] = useState("INFY");
-  const [researchInput, setResearchInput] = useState("INFY");
+  const [researchIdentity, setResearchIdentity] =
+    useState<CompanyIdentity | null>(null);
   const [researchTab, setResearchTab] = useState("Overview");
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<ResearchAnswer | null>(null);
@@ -709,11 +742,16 @@ export default function Home() {
     setView(v);
     setMenuOpen(false);
     history.replaceState(null, "", "#" + v);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({
+      top: 0,
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
+        ? "auto"
+        : "smooth",
+    });
   };
   const openResearch = (s: string) => {
     setResearchSymbol(s);
-    setResearchInput(s);
+    setResearchIdentity(companyDirectory.find((c) => c.symbol === s) || null);
     setAnswer(null);
     setDocuments(null);
     setExtract("");
@@ -857,7 +895,10 @@ export default function Home() {
       setTimeout(
         () =>
           answerRef.current?.scrollIntoView({
-            behavior: "smooth",
+            behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+              .matches
+              ? "auto"
+              : "smooth",
             block: "nearest",
           }),
         100,
@@ -881,19 +922,6 @@ export default function Home() {
     } finally {
       setDiscovering(false);
     }
-  };
-  const researchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const s = researchInput.toUpperCase().trim().replace(/\.NS$/, "");
-    if (!/^[A-Z0-9&-]{1,24}$/.test(s)) {
-      setToast("Enter a valid NSE ticker, such as INFY or TCS.");
-      return;
-    }
-    setResearchSymbol(s);
-    setAnswer(null);
-    setDocuments(null);
-    setExtract("");
-    setDocumentName("");
   };
   const exportBrief = () => {
     const text =
@@ -1100,7 +1128,15 @@ export default function Home() {
             <AccountMenu />
           </div>
         </header>
-        <main>
+        <MarketRibbon
+          markets={allMarkets}
+          symbols={watchlist}
+          onSelect={(selected) => {
+            setSymbol(selected);
+            go("portfolio");
+          }}
+        />
+        <main key={view} className="workspace-content">
           <div className="desk-tools">
             <span>YOUR RESEARCH DESK</span>
             <div>
@@ -1132,27 +1168,12 @@ export default function Home() {
 
           {view === "briefing" && (
             <>
-              <div className="page-heading">
-                <div>
-                  <div className="eyebrow">
-                    A CLEARER VIEW OF YOUR INVESTMENTS
-                  </div>
-                  <h1>
-                    Your companies, clearly<span>.</span>
-                  </h1>
-                  <p>
-                    See what changed, understand the numbers, and check the
-                    evidence.
-                  </p>
-                </div>
-                <button
-                  className="button secondary export-button"
-                  onClick={exportBrief}
-                >
-                  <Download size={15} />
-                  Export briefing
-                </button>
-              </div>
+              <MarketStage
+                markets={allMarkets}
+                onResearch={openResearch}
+                onCompare={() => go("compare")}
+                onExport={exportBrief}
+              />
               <div className="context-strip">
                 <span>
                   <span className="tiny-dot" />
@@ -1164,24 +1185,6 @@ export default function Home() {
                   About the data <Info size={13} />
                 </button>
               </div>
-              {loaded && (
-                <DailyReview
-                  markets={allMarkets}
-                  symbols={watchlist}
-                  storageKey={storageKey}
-                  onUpdate={(series) =>
-                    setAllMarkets((current) => ({
-                      ...current,
-                      [series.symbol]: series,
-                    }))
-                  }
-                  onResearch={openResearch}
-                />
-              )}
-              <WelcomeGuide
-                onGo={(v) => go(v as View)}
-                onLearn={() => setLearnOpen(true)}
-              />
               <div className="summary-grid">
                 <div className="summary-card">
                   <span className="summary-icon">
@@ -1230,6 +1233,31 @@ export default function Home() {
                   </div>
                 </div>
               </div>
+              {loaded && (
+                <DailyReview
+                  markets={allMarkets}
+                  symbols={watchlist}
+                  storageKey={storageKey}
+                  onUpdate={(series) =>
+                    setAllMarkets((current) => ({
+                      ...current,
+                      [series.symbol]: series,
+                    }))
+                  }
+                  onResearch={openResearch}
+                />
+              )}
+              <details className="start-guide">
+                <summary>
+                  <BookOpen size={14} />
+                  New to FINN? Take the three-step tour
+                  <ChevronDown size={14} />
+                </summary>
+                <WelcomeGuide
+                  onGo={(v) => go(v as View)}
+                  onLearn={() => setLearnOpen(true)}
+                />
+              </details>
               <div className="dashboard-grid">
                 <section className="briefing-main">
                   <div className="section-header">
@@ -1851,18 +1879,12 @@ export default function Home() {
                     : "Saved evidence available"}
                 </Badge>
               </div>
-              <form className="research-search" onSubmit={researchSubmit}>
-                <Search size={20} />
-                <input
-                  aria-label="NSE ticker for research"
-                  value={researchInput}
-                  onChange={(e) => setResearchInput(e.target.value)}
-                  placeholder="Enter any NSE ticker, e.g. INFY, TCS, WIPRO"
-                />
-                <button className="button primary" type="submit">
-                  Research company <ArrowRight size={15} />
-                </button>
-              </form>
+              <CompanyLookup
+                onSelect={(selected) => {
+                  openResearch(selected.symbol);
+                  setResearchIdentity(selected);
+                }}
+              />
               <div className="suggested-companies">
                 <span>START WITH</span>
                 {["INFY", "TCS", "RELIANCE", "ITC"].map((s) => (
@@ -1879,9 +1901,13 @@ export default function Home() {
                 <div className="company-name">
                   <CompanyMark symbol={researchSymbol} size="large" />
                   <span>
-                    <strong>{company(researchSymbol).name}</strong>
+                    <strong>
+                      {researchIdentity?.name || company(researchSymbol).name}
+                    </strong>
                     <small>
-                      {researchSymbol} · {company(researchSymbol).sector}
+                      {researchSymbol} ·{" "}
+                      {researchIdentity?.exchange ||
+                        company(researchSymbol).sector}
                     </small>
                   </span>
                 </div>
@@ -1891,34 +1917,48 @@ export default function Home() {
                       ? "Saved primary-source review"
                       : "New company research"}
                   </Badge>
-                  <button
-                    className="text-button"
-                    onClick={() => {
-                      if (
-                        !watchlist.includes(researchSymbol) &&
-                        companies.some((c) => c.symbol === researchSymbol)
-                      ) {
-                        toggleHolding(researchSymbol);
-                        setToast("Company added to your watchlist.");
-                      } else if (
-                        !companies.some((c) => c.symbol === researchSymbol)
-                      ) {
-                        setToast(
-                          "Research accepts any ticker. The mock portfolio currently supports the 18 selected companies.",
-                        );
-                      } else {
+                  {companies.some((c) => c.symbol === researchSymbol) && (
+                    <button
+                      className="text-button"
+                      onClick={() => {
                         setSymbol(researchSymbol);
                         go("portfolio");
-                      }
-                    }}
-                  >
-                    {watchlist.includes(researchSymbol)
-                      ? "View price chart"
-                      : "Add to watchlist"}
-                    <ArrowUpRight size={14} />
-                  </button>
+                      }}
+                    >
+                      Open in portfolio <ArrowUpRight size={14} />
+                    </button>
+                  )}
                 </div>
               </section>
+              <CompanyWorkspace
+                key={researchSymbol}
+                symbol={researchSymbol}
+                identity={researchIdentity}
+                initial={allMarkets[researchSymbol]}
+                chart={(series, chartRange, onChartRange) => (
+                  <PriceChart
+                    series={series}
+                    range={chartRange}
+                    onRange={onChartRange}
+                    events={false}
+                  />
+                )}
+                onAsk={(q) => {
+                  ask(q);
+                  setTimeout(
+                    () =>
+                      answerRef.current?.scrollIntoView({
+                        behavior: window.matchMedia(
+                          "(prefers-reduced-motion: reduce)",
+                        ).matches
+                          ? "auto"
+                          : "smooth",
+                        block: "center",
+                      }),
+                    100,
+                  );
+                }}
+              />
               <div
                 className="research-tabs"
                 role="tablist"
@@ -2007,27 +2047,13 @@ export default function Home() {
                         </section>
                       </>
                     ) : (
-                      <section className="panel empty-state new-company">
-                        <Search size={28} />
-                        <h2>Start with the company’s evidence.</h2>
-                        <p>
-                          No prewritten research exists for {researchSymbol}.
-                          Discover annual reports and transcripts, or supply a
-                          source extract below. The same research pipeline
-                          handles this ticker.
+                      <section className="panel">
+                        <h2>Keep following the evidence.</h2>
+                        <p className="overview-copy">
+                          Your company chart, available disclosures and research
+                          starting points are above. Ask a question below, or
+                          add an official report extract to deepen the analysis.
                         </p>
-                        <button
-                          className="button primary"
-                          onClick={discover}
-                          disabled={discovering}
-                        >
-                          {discovering ? (
-                            <LoaderCircle className="spinning" size={15} />
-                          ) : (
-                            <FileText size={15} />
-                          )}
-                          Find primary documents
-                        </button>
                       </section>
                     ))}
                   {researchTab === "Promises vs. results" &&
@@ -2822,7 +2848,7 @@ export default function Home() {
               <Search size={21} />
               <input
                 autoFocus
-                placeholder="Company name or NSE ticker..."
+                placeholder="Company name or ticker, e.g. Samsung..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
@@ -2837,10 +2863,12 @@ export default function Home() {
             <div className="search-modal-results">
               <div className="eyebrow">FIND YOUR NEXT QUESTION</div>
               {companies
-                .filter((c) =>
-                  (c.name + " " + c.symbol)
-                    .toLowerCase()
-                    .includes(search.toLowerCase()),
+                .filter(
+                  (c) =>
+                    search.trim().length < 2 &&
+                    (c.name + " " + c.symbol)
+                      .toLowerCase()
+                      .includes(search.toLowerCase()),
                 )
                 .map((c) => (
                   <div className="search-company" key={c.symbol}>
@@ -2879,31 +2907,23 @@ export default function Home() {
                     </button>
                   </div>
                 ))}
-              {search.trim() &&
-                /^[A-Z0-9&.-]{1,24}$/i.test(search.trim()) &&
-                !companies.some(
-                  (c) => c.symbol === search.trim().toUpperCase(),
-                ) && (
-                  <button
-                    className="new-ticker-button"
-                    onClick={() => {
-                      setSearchOpen(false);
-                      openResearch(
-                        search.trim().toUpperCase().replace(/\.NS$/, ""),
-                      );
-                    }}
-                  >
-                    <Search size={17} />
-                    Research {search.toUpperCase()} using primary documents
-                    <ArrowRight size={15} />
-                  </button>
-                )}
+              {search.trim().length >= 2 && (
+                <CompanyLookup
+                  compact
+                  query={search}
+                  onSelect={(selected) => {
+                    setSearchOpen(false);
+                    openResearch(selected.symbol);
+                    setResearchIdentity(selected);
+                  }}
+                />
+              )}
             </div>
             <div className="search-modal-footer">
               <span>
                 <Check size={12} /> On your radar
               </span>
-              <span>Any NSE ticker can be researched</span>
+              <span>Find companies across supported exchanges</span>
             </div>
           </section>
         </div>

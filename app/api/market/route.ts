@@ -1,14 +1,16 @@
+import { providerSymbol, validCompanySymbol } from "@/lib/company-directory";
 import snapshot from "@/lib/market-snapshot.json";
 import type { MarketSeries } from "@/lib/market";
 const cache = new Map<string, { at: number; data: MarketSeries }>();
 export async function GET(request: Request) {
   const url = new URL(request.url);
-  const symbol = (url.searchParams.get("symbol") || "INFY")
-    .toUpperCase()
-    .replace(/\.NS$/, "");
-  if (!/^[A-Z0-9&-]{1,24}$/.test(symbol))
+  const symbol = (url.searchParams.get("symbol") || "INFY").toUpperCase();
+  if (!validCompanySymbol(symbol))
     return Response.json(
-      { error: "Enter a valid NSE symbol." },
+      {
+        error:
+          "Choose a company from search or enter an exchange-qualified ticker.",
+      },
       { status: 400 },
     );
   const saved = (snapshot as Record<string, MarketSeries>)[symbol];
@@ -19,7 +21,7 @@ export async function GET(request: Request) {
     return Response.json({ ...hit.data, cached: true });
   try {
     const upstream = await fetch(
-      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}.NS?range=1y&interval=1d`,
+      `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(providerSymbol(symbol))}?range=1y&interval=1d`,
       {
         headers: { "User-Agent": "FINN/1.0 investor-research-prototype" },
         signal: AbortSignal.timeout(12000),
@@ -38,16 +40,18 @@ export async function GET(request: Request) {
         adjusted: adj[i] ?? null,
         volume: q.volume[i] || 0,
       }))
-      .filter((p: any) => Number.isFinite(p.close));
+      .filter((p: any) => Number.isFinite(p.close) && p.close > 0);
+    if (!points.length) throw new Error("No valid prices returned");
     const data: MarketSeries = {
       symbol,
       currency: r.meta.currency || "INR",
       source: "Yahoo Finance",
-      sourceUrl: `https://finance.yahoo.com/quote/${encodeURIComponent(symbol)}.NS/history/`,
+      sourceUrl: `https://finance.yahoo.com/quote/${encodeURIComponent(providerSymbol(symbol))}/history/`,
       fetchedAt: new Date().toISOString(),
       points,
       cached: false,
     };
+    if (cache.size >= 200) cache.delete(cache.keys().next().value!);
     cache.set(symbol, { at: Date.now(), data });
     return Response.json(data);
   } catch {

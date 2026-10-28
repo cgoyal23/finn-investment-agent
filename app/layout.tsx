@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./finance-theme.css";
 export const metadata: Metadata = {
   title: "FINN — Your investment attention, focused",
   description:
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#315d46",
+  themeColor: "#101f36",
 };
 export default function RootLayout({
   children,

@@ -113,6 +113,19 @@ const infyBase =
   "https://www.infosys.com/investors/reports-filings/quarterly-results/";
 export const evidence: Evidence[] = [
   {
+    id: "SAMSUNG-2Q26",
+    symbol: "005930.KS",
+    title: "Samsung Electronics 2Q 2026 earnings-call presentation",
+    kind: "Results filing",
+    date: "2026-07-30",
+    url: "https://images.samsung.com/is/content/samsung/assets/global/ir/docs/2026_2Q_conference_eng.pdf",
+    locator:
+      "Pages 2, 5–6 (PDF numbering): disclaimer, consolidated results and business segments",
+    facts:
+      "The presentation reports consolidated second-quarter 2026 results under K-IFRS, before the external review is completed. It separates Device Solutions (semiconductors), Device eXperience (mobile, TV and home appliances), Samsung Display and Harman. The business-segment discussion describes strong AI-server memory demand while noting component-cost pressure in Device eXperience. Segment performance should be evaluated separately; this presentation alone does not establish a valuation or stock recommendation.",
+  },
+
+  {
     id: "INFY-AR25",
     symbol: "INFY",
     title: "Infosys integrated annual report FY2025",

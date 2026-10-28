@@ -1,3 +1,6 @@
+import { parsePrimaryDocuments } from "./document-parser";
+import { discoverSecDocuments } from "./sec-discovery";
+import { companyDirectory } from "./company-directory";
 import { evidence } from "./finn-data";
 export type DiscoveredDocument = {
   id: string;
@@ -18,9 +21,86 @@ export async function discoverDocuments(
       kind: e.kind,
       date: e.date,
     }));
+
+  const identity = companyDirectory.find((c) => c.symbol === symbol);
+  if (symbol === "005930.KS") {
+    return {
+      documents: [
+        ...saved,
+        {
+          id: "SAMSUNG-EARNINGS",
+          title: "Quarterly earnings releases and presentations",
+          url: "https://www.samsung.com/global/ir/financial-information/earnings-release/",
+          kind: "Official investor relations",
+        },
+        {
+          id: "SAMSUNG-DISCLOSURES",
+          title: "Samsung Electronics public disclosures",
+          url: "https://www.samsung.com/global/ir/reports-disclosures/public-disclosure/",
+          kind: "Official disclosures",
+        },
+      ],
+      warning:
+        "Samsung sources include a verified July 2026 presentation and official disclosure pages. The source list is not a complete live announcement feed.",
+    };
+  }
+  if (symbol.endsWith(".US")) {
+    try {
+      const sec = await discoverSecDocuments(symbol);
+      return {
+        documents: sec,
+        ...(sec.length
+          ? {}
+          : {
+              warning:
+                "No SEC reports found for this ticker. Add a primary-source extract.",
+            }),
+      };
+    } catch {
+      return {
+        documents: identity?.investorUrl
+          ? [
+              {
+                id: symbol + "-IR",
+                title: identity.name + " investor relations",
+                url: identity.investorUrl,
+                kind: "Official investor relations",
+              },
+            ]
+          : [
+              {
+                id: symbol + "-SEC-SEARCH",
+                title: "Find this company’s official SEC filings",
+                url:
+                  "https://www.sec.gov/edgar/search/#/q=" +
+                  encodeURIComponent(symbol.replace(/\.US$/, "")),
+                kind: "Official filing search",
+              },
+            ],
+        warning:
+          "The SEC report provider is unavailable. Charts still work; add an official report extract for business analysis.",
+      };
+    }
+  }
+  if (symbol.includes(".") && !/\.(NS|BO)$/.test(symbol)) {
+    return {
+      documents: identity?.investorUrl
+        ? [
+            {
+              id: symbol + "-IR",
+              title: identity.name + " investor relations",
+              url: identity.investorUrl,
+              kind: "Official investor relations",
+            },
+          ]
+        : [],
+      warning:
+        "Automatic report ingestion is not available for this exchange. Open the official reports and add a primary-source extract for financial analysis.",
+    };
+  }
   try {
     const r = await fetch(
-      `https://www.screener.in/company/${encodeURIComponent(symbol)}/consolidated/`,
+      `https://www.screener.in/company/${encodeURIComponent(symbol.replace(/\.(NS|BO)$/, ""))}/consolidated/`,
       {
         headers: {
           "User-Agent": "Mozilla/5.0 (compatible; FINN research prototype)",
@@ -30,34 +110,7 @@ export async function discoverDocuments(
     );
     if (!r.ok) throw new Error();
     const html = await r.text();
-    const docArea = html.slice(Math.max(0, html.indexOf('id="documents"')));
-    const docs: DiscoveredDocument[] = [];
-    for (const match of docArea.matchAll(
-      /<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi,
-    )) {
-      const href = match[1].replace(/&amp;/g, "&"),
-        label = match[2]
-          .replace(/<[^>]*>/g, " ")
-          .replace(/\s+/g, " ")
-          .trim();
-      if (!href.startsWith("https://") || !label) continue;
-      const host = new URL(href).hostname;
-      if (!/\.pdf(?:\?|$)/i.test(href)) continue;
-      if (
-        !/(bseindia\.com|nseindia\.com)$/.test(host) &&
-        !/(annual|report|transcript|concall|earning)/i.test(href + " " + label)
-      )
-        continue;
-      docs.push({
-        id: `${symbol}-D${docs.length + 1}`,
-        title: label.slice(0, 150),
-        url: href,
-        kind: /transcript|concall/i.test(href + " " + label)
-          ? "Earnings-call transcript"
-          : "Company document",
-      });
-      if (docs.length >= 10) break;
-    }
+    const docs = parsePrimaryDocuments(html, symbol);
     return {
       documents: [
         ...saved,

@@ -1,11 +1,12 @@
+import { validCompanySymbol } from "@/lib/company-directory";
 import { discoverDocuments } from "@/lib/discovery";
 export async function GET(request: Request) {
   const s = (
     new URL(request.url).searchParams.get("symbol") || ""
   ).toUpperCase();
-  if (!/^[A-Z0-9&-]{1,24}$/.test(s))
+  if (!validCompanySymbol(s))
     return Response.json(
-      { error: "Enter a valid NSE symbol." },
+      { error: "Choose a company from search." },
       { status: 400 },
     );
   return Response.json(await discoverDocuments(s));

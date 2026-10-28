@@ -49,3 +49,9 @@ Open Alerts, lower the price threshold and watch the matching signal count updat
 On Briefing, click **Refresh watchlist** and check the price-session dates and refresh result. Click **Mark reviewed** to store the baseline in this browser. On a later trading session, refresh again: newer sessions are compared against that baseline, with the six largest absolute changes linked to research. Mark reviewed again when finished. A refresh may return cached data or a dated fallback; it does not guarantee a newer market session.
 
 In Notebook, add a follow-up date to any note. Use Due/Open/Resolved to triage research, and Mark resolved or Reopen question to update its status. Exports preserve dates, status, sources and text. No email or background reminders are sent.
+
+### Company-name search and the market desk
+
+Search **Wipro** and choose the NSE listing. Check the currency, price range controls, automatically calculated movement and volume observations, dated exchange disclosures, and original annual-report/transcript links. Try **Toyota** to see multiple exchanges, and **Apple** to see USD pricing. Source providers can refuse access; the interface shows that gap rather than inventing financial analysis. The research button uses Google-authenticated, source-grounded AI.
+
+On Briefing, switch the featured company chart, open research or compare from the market stage, and pause/resume the dated market ribbon. With the operating system’s reduced-motion preference enabled, the ribbon and ornamental transitions are static. On small screens the chart coordinate width adapts to keep labels legible.
