@@ -117,4 +117,9 @@ Primary documents belong to the issuing companies. Market data is attributed to 
 
 Search by company name across the provider’s supported stock exchanges. Results identify the listing; selecting a company loads currency-correct price history, calculated price/volume observations, available official disclosures and a source-grounded AI research action. This extends the research flow beyond the 18-company mock portfolio. Document coverage varies by exchange; inaccessible reports are not replaced with fabricated facts. See [release notes](docs/RELEASE_V3.md).
 
-The dashboard now has a navy-and-mint market stage, a real-price featured chart, a dated moving price ribbon with pause/resume, and short opening transitions. Reduced-motion preferences are respected. Visual browser QA is pending because the browser connection is unavailable in the build environment.
+The dashboard now has a navy-and-mint market stage, a real-price featured chart, a dated moving price ribbon with pause/resume, and short opening transitions. Reduced-motion preferences are respected. Native Chrome visual checks now cover desktop and 390×844 mobile emulation, including company selection, keyboard navigation, mode switching, motion pause and entry into company research.
+
+
+### FINN Field Guide
+
+The opening experience now includes three switchable views: **Market City**, **Signal Map** and **Chart Desk**. Company buildings and map nodes select a passport with dated prices, a real sparkline and a company-research action. Scene geometry is illustrative; building sizes are not financial measurements and map links are not correlations. See [field-guide release notes](docs/RELEASE_V4.md).
