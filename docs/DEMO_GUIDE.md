@@ -59,3 +59,7 @@ On Briefing, switch the featured company chart, open research or compare from th
 ### Explore the field guide
 
 At the top of Briefing, switch between **Market City**, **Signal Map** and **Chart Desk**. Select a building/node or one of the company chips: the passport updates to the company’s actual dated close, daily change and recent price line. Open company research from that passport. Pause/resume ambient scene motion using the circular control. The city is illustrative; building size is not a financial measurement. The map’s lines are not correlations.
+
+### A two-minute learning break
+
+Open **Play & learn** (or **Play** on the mobile bottom bar). Try Number Sprint’s untimed setting first: enter an answer, check it, read the explanation and continue. Return to the lobby for six Returns Rally scenarios or six Evidence Detective cases. The Daily Mix gives everyone the same eight-question set for the India calendar day. Finish a round to save personal progress in this browser and optionally copy a score card. Timed rounds pause when the tab is hidden; these are personal learning games, not verified competitive rankings.

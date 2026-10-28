@@ -79,3 +79,11 @@ Validation: 26 tests pass; TypeScript and production build pass. Rendered the ac
 
 
 Browser follow-up: after the user left Chrome idle, native interaction succeeded with macOS Meta-key shortcuts. Verified all three views, pointer and keyboard company selection, passport prices, pause/resume state and mobile research entry. A 390×844 emulation exposed horizontal city overflow; the scene now fits, selectors have larger targets and the heading is compact. Rechecked the refined layout live; fixed compact source-caption spacing. The browser console showed zero messages after these flows. Restored normal desktop browsing and left FINN on Market City.
+
+## 28 October 2026 — finance learning games
+
+User asked to integrate TraderMath or a finance game to engage visitors. Reviewed the official TraderMath site, then implemented original FINN games rather than adding a paid/unsupported embed or copying assessment content. Number Sprint, Returns Rally and Evidence Detective feed an eight-question Daily Mix. Added local points, bounded personal records, day streaks, milestones, answer explanations/review and visitor-controlled score copying. The games use fictional figures and do not call the AI API or place trades.
+
+Added unit coverage for randomized arithmetic and distinct answer options, including fixing ambiguous zero-return distractors. Daily cases are deterministic by India day and evidence rounds avoid repeated cases. Empty and duplicate records do not inflate progress, and daily completion survives bounded history. Added mobile Play navigation, hash-link updates and account-scoped local storage.
+
+Chrome lobby screenshot and answer/score feedback were checked. Browser access subsequently returned invalid-window/no-window errors despite user coordination and reconnect attempts; full-round/timer/mobile browser checks remain incomplete for this release. Automated validation is reported separately.

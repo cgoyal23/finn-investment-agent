@@ -1,4 +1,5 @@
 "use client";
+import { Playroom } from "@/components/finn/playroom";
 import { CompanyLookup } from "@/components/finn/company-lookup";
 import { CompanyWorkspace } from "@/components/finn/company-workspace";
 import {
@@ -49,6 +50,7 @@ import {
   GitCompareArrows,
   NotebookPen,
   CircleHelp,
+  Gamepad2,
 } from "lucide-react";
 import {
   companies,
@@ -86,7 +88,8 @@ type View =
   | "theses"
   | "alerts"
   | "compare"
-  | "notebook";
+  | "notebook"
+  | "arcade";
 type Thesis = { id: string; symbol: string; text: string; tags: string[] };
 type ResearchAnswer = {
   mode: string;
@@ -107,6 +110,7 @@ const navItems = [
   { id: "alerts", label: "Alerts", icon: Bell },
   { id: "compare", label: "Compare", icon: GitCompareArrows },
   { id: "notebook", label: "Notebook", icon: NotebookPen },
+  { id: "arcade", label: "Play & learn", icon: Gamepad2 },
 ];
 function money(n: number | undefined, currency = "INR") {
   return n === undefined
@@ -657,8 +661,12 @@ export default function Home() {
       .then((r) => r.json())
       .then((d: any) => restoreDesk(d.user?.id))
       .catch(() => restoreDesk());
-    const h = location.hash.slice(1);
-    if (navItems.some((n) => n.id === h)) setView(h as View);
+    const syncHash = () => {
+      const h = location.hash.slice(1);
+      if (navItems.some((n) => n.id === h)) setView(h as View);
+    };
+    syncHash();
+    window.addEventListener("hashchange", syncHash);
     fetch("/api/status")
       .then((r) => r.json())
       .then((d: any) => setApiStatus(d))
@@ -678,7 +686,10 @@ export default function Home() {
       }
     };
     document.addEventListener("keydown", key);
-    return () => document.removeEventListener("keydown", key);
+    return () => {
+      document.removeEventListener("keydown", key);
+      window.removeEventListener("hashchange", syncHash);
+    };
   }, []);
   useEffect(() => {
     if (loaded) {
@@ -1149,12 +1160,19 @@ export default function Home() {
                 <NotebookPen size={14} />
                 Notebook <small>{notes.length}</small>
               </button>
+              <button onClick={() => go("arcade")}>
+                <Gamepad2 size={14} />
+                Play & learn
+              </button>
               <button onClick={() => setLearnOpen(true)}>
                 <BookOpen size={14} />
                 Explain a term
               </button>
             </div>
           </div>
+          {view === "arcade" && loaded && (
+            <Playroom key={storageKey} storageKey={storageKey} />
+          )}
           {view === "compare" && (
             <CompareExplorer markets={allMarkets} onResearch={openResearch} />
           )}
@@ -2814,16 +2832,24 @@ export default function Home() {
         </main>
       </div>
       <nav className="mobile-nav" aria-label="Mobile navigation">
-        {navItems.slice(0, 5).map((n) => (
-          <button
-            key={n.id}
-            className={view === n.id ? "active" : ""}
-            onClick={() => go(n.id as View)}
-          >
-            <n.icon size={20} />
-            <span>{n.label === "Thesis watch" ? "Theses" : n.label}</span>
-          </button>
-        ))}
+        {["briefing", "portfolio", "research", "arcade", "alerts"]
+          .map((id) => navItems.find((n) => n.id === id)!)
+          .map((n) => (
+            <button
+              key={n.id}
+              className={view === n.id ? "active" : ""}
+              onClick={() => go(n.id as View)}
+            >
+              <n.icon size={20} />
+              <span>
+                {n.id === "arcade"
+                  ? "Play"
+                  : n.label === "Thesis watch"
+                    ? "Theses"
+                    : n.label}
+              </span>
+            </button>
+          ))}
       </nav>
       {toast && (
         <div className="toast" role="status">

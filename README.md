@@ -123,3 +123,7 @@ The dashboard now has a navy-and-mint market stage, a real-price featured chart,
 ### FINN Field Guide
 
 The opening experience now includes three switchable views: **Market City**, **Signal Map** and **Chart Desk**. Company buildings and map nodes select a passport with dated prices, a real sparkline and a company-research action. Scene geometry is illustrative; building sizes are not financial measurements and map links are not correlations. See [field-guide release notes](docs/RELEASE_V4.md).
+
+### FINN Playroom
+
+Open **Play & learn** or `/#arcade` for original Number Sprint, Returns Rally and Evidence Detective games, plus an eight-question Daily Mix seeded by the India calendar day. Number Sprint offers 60-second and untimed modes. Explanations, personal bests, practice streaks, milestones, bounded recent history and a copyable score card are included. Fictional examples and local points are used; no extra API or third-party subscription is required. Progress is scoped to the current browser/account workspace and does not sync between devices. See [Playroom release notes](docs/RELEASE_V5.md).
