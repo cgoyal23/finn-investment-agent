@@ -25,3 +25,7 @@ The browser-control surfaces became unavailable after an interrupted development
 Publisher discovery and PDF download success depend on third-party availability. Unknown-ticker research has been verified with a supplied source extract; exhaustive automatic discovery across NSE tickers has not been demonstrated.
 
 This log is updated with the actual build/deployment result when it is available. Deployment success does not imply the site is accessible to external evaluators: development hosting is owner-private.
+
+### Daily review upgrade — 28 October 2026
+
+19 automated tests pass. New cases verify that missing, same-date, older and invalid-baseline market data cannot imply a new price change; follow-ups due today are included; resolved questions stay resolved; exports retain review metadata. Local production compilation and TypeScript passed using `npm run build -- --webpack`; local Turbopack was blocked by sandbox process-port restrictions. Browser access host remains unavailable, so this upgrade has no new visual QA claim.

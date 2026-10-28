@@ -1,4 +1,5 @@
 "use client";
+import { DailyReview } from "@/components/finn/daily-review";
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -1163,6 +1164,20 @@ export default function Home() {
                   About the data <Info size={13} />
                 </button>
               </div>
+              {loaded && (
+                <DailyReview
+                  markets={allMarkets}
+                  symbols={watchlist}
+                  storageKey={storageKey}
+                  onUpdate={(series) =>
+                    setAllMarkets((current) => ({
+                      ...current,
+                      [series.symbol]: series,
+                    }))
+                  }
+                  onResearch={openResearch}
+                />
+              )}
               <WelcomeGuide
                 onGo={(v) => go(v as View)}
                 onLearn={() => setLearnOpen(true)}

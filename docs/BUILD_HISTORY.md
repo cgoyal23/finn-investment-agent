@@ -50,3 +50,11 @@ Repeated provider checks exposed timeouts for the initially selected Gemini mode
 The user requested a more attractive, understandable interface, more useful features, Google authentication instead of the former platform login, and a hosting address without the former provider suffix. The app gained comparison, a research notebook, source-linked timelines, a plain-language learning guide, interactive chart markers and new onboarding. Standard Next.js was added as the primary deployment path for Vercel. The user completed Vercel’s device authorization; no password or OTP was collected by the app. Direct Google login is implemented but still needs a web OAuth Client ID and an actual account test.
 
 The user supplied the Google web-client identifier after creating a Web application client. It was configured in production, the application was redeployed, and server-side challenge/invalid-token/anonymous-research checks passed. No Google password, OTP or client secret was requested.
+
+## 28 October 2026 — daily research workflow
+
+User requested more quality features after Google authentication setup. Added a daily review panel: refresh the selected watchlist with two concurrent requests, show coverage and session dates, explicitly save a per-account browser baseline, and rank changes only when a newer price session exists. Failed refreshes retain dated data and are counted separately. Unadjusted-price corporate-action limitations are visible.
+
+Notebook now supports optional follow-up dates, due/open/resolved filters and counts, resolving/reopening questions, and export of review metadata. These are browser-local reminders, not scheduled notifications. Historical filings remain historical; live exchange ingestion is not part of this release.
+
+Validation: 19 tests passed, including baseline chronology and research follow-up boundaries. Local Next.js webpack production build passed. Turbopack locally hit a sandbox process-port restriction. Browser inventory still reports the browser access host unavailable, so visual interaction verification remains outstanding.

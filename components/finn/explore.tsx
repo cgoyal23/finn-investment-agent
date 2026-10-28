@@ -25,6 +25,7 @@ import {
   maxDrawdown,
   financialRatio,
   notebookMarkdown,
+  noteReviewState,
   glossary,
   type ResearchNote,
 } from "@/lib/insights";
@@ -470,12 +471,19 @@ export function ResearchNotebook({
 }) {
   const [filter, setFilter] = useState("");
   const [adding, setAdding] = useState(false);
+  const [reviewOn, setReviewOn] = useState("");
+  const [reviewFilter, setReviewFilter] = useState("All");
+  const today = new Date().toLocaleDateString("en-CA");
   const [symbol, setSymbol] = useState("INFY");
   const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-  const visible = notes.filter((n) =>
-    (n.title + n.text + n.symbol).toLowerCase().includes(filter.toLowerCase()),
+  const visible = notes.filter(
+    (n) =>
+      (n.title + n.text + n.symbol)
+        .toLowerCase()
+        .includes(filter.toLowerCase()) &&
+      (reviewFilter === "All" || noteReviewState(n, today) === reviewFilter),
   );
   return (
     <>
@@ -507,6 +515,23 @@ export function ResearchNotebook({
           </button>
         </div>
       </div>
+      <div className="review-filters" aria-label="Filter research by status">
+        {["All", "Due", "Open", "Resolved"].map((status) => (
+          <button
+            className={
+              reviewFilter === status ? "button primary" : "button secondary"
+            }
+            key={status}
+            onClick={() => setReviewFilter(status)}
+          >
+            {status}{" "}
+            {status === "All"
+              ? notes.length
+              : notes.filter((n) => noteReviewState(n, today) === status)
+                  .length}
+          </button>
+        ))}
+      </div>
       <div className="notebook-toolbar">
         <div className="list-search">
           <Search size={16} />
@@ -536,6 +561,7 @@ export function ResearchNotebook({
                 text: text.trim(),
                 createdAt: new Date().toISOString(),
                 sources: [],
+                reviewOn: reviewOn || undefined,
               },
               ...notes,
             ]);
@@ -581,6 +607,14 @@ export function ResearchNotebook({
               placeholder="What did you notice? What evidence would support or challenge it?"
             />
           </label>
+          <label>
+            Follow-up date (optional)
+            <input
+              type="date"
+              value={reviewOn}
+              onChange={(e) => setReviewOn(e.target.value)}
+            />
+          </label>
           <div>
             <button
               className="text-button"
@@ -609,7 +643,40 @@ export function ResearchNotebook({
                 })}
               </time>
             </div>
+            <span className="badge neutral">
+              {noteReviewState(n, today)}
+              {n.reviewOn ? " · Review " + n.reviewOn : ""}
+            </span>
             <h2>{n.title}</h2>
+            <label className="review-date">
+              Follow up
+              <input
+                aria-label={"Follow-up date for " + n.title}
+                type="date"
+                value={n.reviewOn || ""}
+                onChange={(e) =>
+                  onChange(
+                    notes.map((x) =>
+                      x.id === n.id
+                        ? { ...x, reviewOn: e.target.value || undefined }
+                        : x,
+                    ),
+                  )
+                }
+              />
+            </label>
+            <button
+              className="text-button"
+              onClick={() =>
+                onChange(
+                  notes.map((x) =>
+                    x.id === n.id ? { ...x, resolved: !x.resolved } : x,
+                  ),
+                )
+              }
+            >
+              {n.resolved ? "Reopen question" : "Mark resolved"}
+            </button>
             <p className="notebook-text">{n.text}</p>
             {n.sources.length > 0 && (
               <div className="note-sources">

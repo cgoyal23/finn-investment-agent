@@ -5925,3 +5925,92 @@ h1 {
     font-size: 20px;
   }
 }
+
+.daily-review {
+  padding: 24px;
+  margin: 20px 0;
+  border-top: 3px solid #42694e;
+}
+.daily-review-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.daily-review h2 {
+  font-family: Georgia, serif;
+  font-size: 25px;
+  margin: 8px 0;
+}
+.daily-review p {
+  color: #657064;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.data-health {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  background: #f1f4ed;
+  padding: 14px;
+  margin: 18px 0;
+  font-size: 12px;
+  border-radius: 8px;
+}
+.review-movers {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+.review-movers button {
+  text-align: left;
+  border: 1px solid #dce3d7;
+  border-radius: 8px;
+  padding: 14px;
+  background: white;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  color: #315f4c;
+}
+.review-movers small {
+  font-size: 10px;
+  color: #657064;
+}
+.review-footnote {
+  font-size: 11px !important;
+  margin-top: 16px;
+}
+.review-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.review-date {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  margin: 12px 0;
+}
+.review-date input {
+  border: 1px solid #dce3d7;
+  border-radius: 6px;
+  padding: 6px;
+  background: white;
+  max-width: 100%;
+}
+@media (max-width: 600px) {
+  .daily-review {
+    padding: 17px;
+  }
+  .daily-review .heading-actions {
+    flex-wrap: wrap;
+  }
+  .daily-review .button {
+    font-size: 11px;
+    padding: 10px;
+  }
+}

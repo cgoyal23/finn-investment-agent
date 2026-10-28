@@ -11,10 +11,16 @@ const code = ts.transpileModule(
     },
   },
 ).outputText;
-const { alignComparison, maxDrawdown, financialRatio, notebookMarkdown } =
-  await import(
-    "data:text/javascript;base64," + Buffer.from(code).toString("base64")
-  );
+const {
+  alignComparison,
+  maxDrawdown,
+  financialRatio,
+  notebookMarkdown,
+  reviewChanges,
+  noteReviewState,
+} = await import(
+  "data:text/javascript;base64," + Buffer.from(code).toString("base64")
+);
 const s = (symbol, points) => ({
   symbol,
   points: points.map(([date, close, adjusted = close]) => ({
@@ -92,4 +98,45 @@ test("notebook export retains source provenance and note contents", () => {
   assert.match(out, /Check guidance/);
   assert.match(out, /Question with evidence/);
   assert.match(out, /https:\/\/example.com\/report/);
+});
+
+test("review changes exclude same or older sessions, invalid baselines and missing holdings", () => {
+  const markets = {
+    A: s("A", [["2026-10-26", 120]]),
+    B: s("B", [["2026-10-26", 80]]),
+    C: s("C", [["2026-10-25", 20]]),
+  };
+  const result = reviewChanges(markets, ["A", "B", "C", "D"], {
+    A: { date: "2026-10-25", close: 100 },
+    B: { date: "2026-10-26", close: 100 },
+    C: { date: "2026-10-26", close: 0 },
+  });
+  assert.equal(result.length, 1);
+  assert.equal(result[0].symbol, "A");
+  assert.ok(Math.abs(result[0].change - 20) < 1e-9);
+  assert.deepEqual(reviewChanges(markets, ["A"], {}), []);
+});
+test("research follow-ups include today, respect resolution and export review metadata", () => {
+  const note = {
+    id: "a",
+    symbol: "INFY",
+    title: "Check margin",
+    text: "Evidence",
+    createdAt: "2026-10-28",
+    sources: [],
+    reviewOn: "2026-10-28",
+  };
+  assert.equal(noteReviewState(note, "2026-10-28"), "Due");
+  assert.equal(
+    noteReviewState({ ...note, reviewOn: "2026-10-29" }, "2026-10-28"),
+    "Open",
+  );
+  assert.equal(
+    noteReviewState({ ...note, resolved: true }, "2026-10-28"),
+    "Resolved",
+  );
+  assert.match(
+    notebookMarkdown([{ ...note, resolved: true }]),
+    /Review: 2026-10-28 · Resolved/,
+  );
 });

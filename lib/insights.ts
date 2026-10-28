@@ -59,6 +59,8 @@ export type ResearchNote = {
   title: string;
   text: string;
   createdAt: string;
+  reviewOn?: string;
+  resolved?: boolean;
   sources: { title: string; url: string }[];
 };
 export function notebookMarkdown(notes: ResearchNote[]) {
@@ -76,6 +78,13 @@ export function notebookMarkdown(notes: ResearchNote[]) {
           " · " +
           n.createdAt +
           "\n\n" +
+          (n.reviewOn
+            ? "Review: " +
+              n.reviewOn +
+              " · " +
+              (n.resolved ? "Resolved" : "Open") +
+              "\n\n"
+            : "") +
           n.text +
           "\n\n" +
           n.sources
@@ -222,3 +231,43 @@ export const glossary = [
     example: "A move from ₹100 to ₹80 before recovering is a 20% drawdown.",
   },
 ];
+
+export type ReviewBaseline = Record<string, { date: string; close: number }>;
+export function reviewChanges(
+  markets: Record<string, MarketSeries>,
+  symbols: string[],
+  baseline: ReviewBaseline,
+) {
+  return symbols
+    .flatMap((symbol) => {
+      const latest = markets[symbol]?.points.at(-1),
+        prior = baseline[symbol];
+      if (
+        !latest ||
+        !prior ||
+        latest.date <= prior.date ||
+        !Number.isFinite(prior.close) ||
+        prior.close <= 0
+      )
+        return [];
+      return [
+        {
+          symbol,
+          date: latest.date,
+          from: prior.date,
+          change: (latest.close / prior.close - 1) * 100,
+        },
+      ];
+    })
+    .sort((a, b) => Math.abs(b.change) - Math.abs(a.change));
+}
+export function noteReviewState(note: ResearchNote, today: string) {
+  if (note.resolved) return "Resolved";
+  if (
+    note.reviewOn &&
+    /^\d{4}-\d{2}-\d{2}$/.test(note.reviewOn) &&
+    note.reviewOn <= today
+  )
+    return "Due";
+  return "Open";
+}

@@ -43,3 +43,9 @@ Open Alerts, lower the price threshold and watch the matching signal count updat
 - Try a fresh browser at phone width.
 - Keep the limitations in the README visible.
 - Preserve build conversations, redacting credentials before sharing.
+
+### Daily review and follow-ups
+
+On Briefing, click **Refresh watchlist** and check the price-session dates and refresh result. Click **Mark reviewed** to store the baseline in this browser. On a later trading session, refresh again: newer sessions are compared against that baseline, with the six largest absolute changes linked to research. Mark reviewed again when finished. A refresh may return cached data or a dated fallback; it does not guarantee a newer market session.
+
+In Notebook, add a follow-up date to any note. Use Due/Open/Resolved to triage research, and Mark resolved or Reopen question to update its status. Exports preserve dates, status, sources and text. No email or background reminders are sent.
