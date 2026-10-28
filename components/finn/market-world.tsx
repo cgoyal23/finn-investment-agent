@@ -647,8 +647,7 @@ export function MarketWorld({
                 <span className="ticket-barcode" aria-hidden="true" />
                 <p className="ticket-source">
                   Yahoo Finance · dated closing prices
-                  <br />
-                  Unadjusted · no live quote or forecast
+                  <br /> Unadjusted · no live quote or forecast
                 </p>
               </aside>
             ) : (
