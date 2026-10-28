@@ -44,3 +44,7 @@ The final redesign passed compilation, lint, type checks, regression tests and t
 - Prices are dated EOD observations, not live quotes. Historical filing examples are labelled. Charts do not prove causes or predict returns.
 - Notes, watchlists, game records and review baselines are local to this browser/account. Alerts run in-app, with no background push or cloud sync.
 - AI citation validation checks allowed source IDs and server-owned metadata, not semantic entailment of every generated sentence.
+
+## Production verification
+
+Runtime commit `0961c3e` is deployed at https://finn-investment-agent.vercel.app. Vercel deployment `dpl_DX5dQXHUZn6DV1eFLBmjYAtxucQd` reports READY and the production alias is confirmed. All 45 HTTP audit checks and five anonymous smoke checks passed on the production URL. New dashboard markup and mobile stylesheet selectors were fetched and verified. This confirms delivery, not a rendered mobile visual pass. Live generation/caching was explicitly skipped because those checks require a real signed-in session.
