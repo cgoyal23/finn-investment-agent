@@ -55,3 +55,7 @@ In Notebook, add a follow-up date to any note. Use Due/Open/Resolved to triage r
 Search **Wipro** and choose the NSE listing. Check the currency, price range controls, automatically calculated movement and volume observations, dated exchange disclosures, and original annual-report/transcript links. Try **Toyota** to see multiple exchanges, and **Apple** to see USD pricing. Source providers can refuse access; the interface shows that gap rather than inventing financial analysis. The research button uses Google-authenticated, source-grounded AI.
 
 On Briefing, switch the featured company chart, open research or compare from the market stage, and pause/resume the dated market ribbon. With the operating system’s reduced-motion preference enabled, the ribbon and ornamental transitions are static. On small screens the chart coordinate width adapts to keep labels legible.
+
+### Explore the field guide
+
+At the top of Briefing, switch between **Market City**, **Signal Map** and **Chart Desk**. Select a building/node or one of the company chips: the passport updates to the company’s actual dated close, daily change and recent price line. Open company research from that passport. Pause/resume ambient scene motion using the circular control. The city is illustrative; building size is not a financial measurement. The map’s lines are not correlations.

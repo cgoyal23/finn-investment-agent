@@ -5,7 +5,8 @@ import {
   companyDirectory,
   type CompanyIdentity,
 } from "@/lib/company-directory";
-import { MarketRibbon, MarketStage } from "@/components/finn/market-stage";
+import { MarketWorld } from "@/components/finn/market-world";
+import { MarketRibbon } from "@/components/finn/market-stage";
 import { DailyReview } from "@/components/finn/daily-review";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -1168,7 +1169,8 @@ export default function Home() {
 
           {view === "briefing" && (
             <>
-              <MarketStage
+              <MarketWorld
+                symbols={watchlist}
                 markets={allMarkets}
                 onResearch={openResearch}
                 onCompare={() => go("compare")}

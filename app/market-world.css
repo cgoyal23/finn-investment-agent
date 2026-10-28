@@ -1,0 +1,1024 @@
+/* FINN Field Guide. An original, explorable financial atlas. */
+:root {
+  --paper: #f4f3ed;
+  --line: #dfe3d8;
+}
+body {
+  background: #f4f3ed;
+}
+.workspace-content {
+  padding-top: 20px;
+}
+.sidebar {
+  background: linear-gradient(155deg, #253c3b, #192d2e);
+}
+.sidebar .brand-dot,
+.brand-mark i {
+  color: #d6ec9a;
+}
+.brand-mark i {
+  background: #d6ec9a;
+}
+.sidebar:before {
+  background: linear-gradient(90deg, #d6ec9a, #85b49e);
+}
+.sidebar .nav-item.active {
+  color: #e0efb4;
+  background: #d6ec9a12;
+  border-color: #d6ec9a24;
+  box-shadow: inset 3px 0 #d6ec9a;
+}
+.sidebar .sidebar-note {
+  background: #344b45;
+}
+.topbar {
+  background: #fcfcf7;
+}
+.market-ribbon,
+.ribbon-label {
+  background: #eaede3;
+}
+.market-ribbon {
+  border-color: #dce2d4;
+}
+.ribbon-group button {
+  border-color: #d9dfd2;
+}
+.desk-tools {
+  border-color: #dce2d5;
+}
+.market-world {
+  background: #f9faf3;
+  border: 1px solid #d2dcca;
+  border-radius: 18px;
+  margin-bottom: 19px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 35px #2c443709;
+  isolation: isolate;
+}
+.market-world:before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  opacity: 0.35;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' opacity='.065' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+.world-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 15px 23px;
+  background: #eef1e6;
+  border-bottom: 1px solid #d6dfcd;
+}
+.world-edition {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: #375144;
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  letter-spacing: 1px;
+  font-size: 9px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.world-edition i {
+  display: block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #69834a;
+  box-shadow: 0 0 0 3px #dce5c6;
+}
+.world-edition > span {
+  color: #63735b;
+  padding-left: 8px;
+  border-left: 1px solid #b8c5aa;
+  margin-left: 3px;
+  font-size: 8px;
+}
+.world-modes {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px;
+  background: #e2e7d8;
+  border-radius: 8px;
+}
+.world-modes button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  font-size: 10px;
+  color: #586e57;
+  border-radius: 6px;
+  transition:
+    background 0.2s,
+    box-shadow 0.2s;
+  white-space: nowrap;
+}
+.world-modes button:hover {
+  background: #ffffff60;
+}
+.world-modes button.active {
+  background: #fbfcf6;
+  color: #2f4c3c;
+  box-shadow: 0 1px 5px #33442b10;
+}
+.world-pause {
+  width: 27px;
+  height: 27px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #c6d2ba;
+  border-radius: 50%;
+  color: #5c7452;
+  flex-shrink: 0;
+}
+.world-intro {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 30px;
+  padding: 29px 32px 0;
+}
+.world-chapter {
+  color: #63735b;
+  font-size: 8px;
+  font-family: ui-monospace, monospace;
+  letter-spacing: 1.8px;
+}
+.world-intro h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  font-size: 57px;
+  line-height: 1.05;
+  letter-spacing: -2.6px;
+  margin: 11px 0 0;
+  color: #293f36;
+}
+.world-intro h1 em {
+  font-weight: 400;
+  color: #728653;
+}
+.world-intro > p {
+  color: #63735b;
+  font-size: 11px;
+  line-height: 1.9;
+  max-width: 245px;
+  margin-bottom: 9px;
+}
+.world-experience {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 265px;
+  gap: 10px;
+  padding: 0 26px 0 8px;
+  align-items: center;
+}
+.world-scene {
+  min-width: 0;
+  position: relative;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.world-scene-hint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-left: 24px;
+  margin-top: 23px;
+  font-family: ui-monospace, monospace;
+  color: #637859;
+  font-size: 8px;
+}
+.world-scene-hint > span {
+  margin-left: auto;
+  font-size: 7px;
+  color: #63735b;
+}
+.world-canvas {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #b5c5a3 transparent;
+}
+.market-city-svg {
+  display: block;
+  width: 100%;
+  min-width: 410px;
+  margin-top: 0;
+  overflow: visible;
+}
+.city-building {
+  cursor: pointer;
+  outline: none;
+}
+.building-outline {
+  stroke: #49665d;
+  stroke-opacity: 0.3;
+  stroke-width: 0.8px;
+  transition:
+    stroke 0.2s,
+    stroke-width 0.2s;
+}
+.city-building:hover .building-outline,
+.city-building:focus-visible .building-outline {
+  stroke: #4f7659;
+  stroke-width: 2px;
+  stroke-opacity: 1;
+}
+.city-building:focus-visible > rect,
+.map-company:focus-visible > rect {
+  stroke: #1886b0;
+  stroke-width: 3px;
+}
+.city-building:hover .city-window {
+  opacity: 0.95;
+}
+.city-route {
+  animation: route-flow 18s linear infinite;
+}
+.map-connection {
+  animation: route-flow 8s linear infinite;
+}
+.market-city-svg {
+  animation: district-arrive 0.9s ease both;
+}
+.world-legend {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding-left: 24px;
+  margin: 0 0 18px;
+  font-size: 7px;
+  color: #63735b;
+  flex-wrap: wrap;
+}
+.world-legend > span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.world-legend i {
+  height: 5px;
+  width: 5px;
+  background: #237f64;
+  border-radius: 50%;
+}
+.world-legend > span:nth-child(2) i {
+  background: #bd6a57;
+}
+.world-legend > small {
+  margin-left: auto;
+  font-size: 7px;
+}
+.world-ticket {
+  background: #fffef6;
+  border: 1px solid #d0d6bd;
+  border-radius: 9px;
+  padding: 18px 19px 13px;
+  box-shadow: 0 5px 15px #34472c0b;
+  position: relative;
+  transform: rotate(1.2deg);
+  margin-top: 16px;
+  animation: passport-arrive 0.65s 0.1s ease both;
+}
+.world-ticket:before {
+  content: "";
+  display: block;
+  position: absolute;
+  top: -6px;
+  width: 53px;
+  height: 15px;
+  transform: rotate(-5deg);
+  left: calc(50% - 26px);
+  background: #c7d3af70;
+  border: 1px solid #acba9440;
+  backdrop-filter: blur(2px);
+}
+.ticket-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: ui-monospace, monospace;
+  font-size: 8px;
+  letter-spacing: 1.1px;
+  color: #60714c;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e1e6d4;
+}
+.ticket-identity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+.ticket-identity > span {
+  width: 31px;
+  height: 31px;
+  background: #e9efdd;
+  color: #617b4c;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Georgia, serif;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.ticket-identity h2 {
+  font-size: 14px;
+  line-height: 1.3;
+  font-weight: 600;
+  color: #3c523d;
+  letter-spacing: -0.4px;
+}
+.ticket-identity p {
+  font-family: ui-monospace, monospace;
+  color: #647351;
+  font-size: 8px;
+  margin-top: 4px;
+}
+.ticket-value {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 17px;
+}
+.ticket-value > strong {
+  color: #314a37;
+  font-size: 25px;
+  font-weight: 650;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+}
+.ticket-value > span {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 2px;
+  color: #257a59;
+  font-size: 11px;
+  font-weight: 550;
+}
+.ticket-value > span.down {
+  color: #aa5447;
+}
+.ticket-value small {
+  flex-basis: 100%;
+  text-align: right;
+  font-size: 7px;
+  color: #647351;
+  font-weight: 400;
+}
+.ticket-sparkline {
+  width: 100%;
+  display: block;
+  margin-top: 7px;
+}
+.ticket-price-line {
+  stroke-dasharray: 1;
+  animation: passport-line 1s 0.1s ease both;
+}
+.ticket-dates {
+  display: flex;
+  justify-content: space-between;
+  font-family: ui-monospace, monospace;
+  font-size: 7px;
+  color: #647351;
+  margin-top: 3px;
+}
+.world-ticket dl {
+  margin: 13px 0;
+  padding: 12px 0;
+  border-top: 1px solid #e0e7d4;
+  border-bottom: 1px solid #e0e7d4;
+}
+.world-ticket dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 8px;
+  color: #61724e;
+  margin: 5px 0;
+}
+.world-ticket dd {
+  margin: 0;
+  color: #4f6b44;
+  font-weight: 500;
+  text-align: right;
+}
+.ticket-research {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 11px;
+  color: #e8f4d2;
+  background: #2b4b3d;
+  border-radius: 5px;
+  width: 100%;
+  font-size: 10px;
+  transition: background 0.2s;
+}
+.ticket-research:hover {
+  background: #395f4c;
+}
+.ticket-tear {
+  margin: 17px -19px 10px;
+  border-top: 1px dashed #c5cfb5;
+  position: relative;
+}
+.ticket-tear:before,
+.ticket-tear:after {
+  content: "";
+  position: absolute;
+  width: 9px;
+  height: 13px;
+  background: #f8faf2;
+  border: 1px solid #d0d6bd;
+  border-radius: 50%;
+  top: -7px;
+}
+.ticket-tear:before {
+  left: -6px;
+}
+.ticket-tear:after {
+  right: -6px;
+}
+.ticket-barcode {
+  display: block;
+  width: 85px;
+  height: 17px;
+  margin: auto;
+  opacity: 0.65;
+  background: repeating-linear-gradient(
+    90deg,
+    #5b704d 0 1px,
+    transparent 1px 3px,
+    #5b704d 3px 5px,
+    transparent 5px 6px,
+    #5b704d 6px 7px,
+    transparent 7px 10px
+  );
+}
+.ticket-source {
+  text-align: center;
+  font-size: 7px;
+  line-height: 1.8;
+  color: #647351;
+  margin-top: 7px;
+}
+.world-company-nav {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 28px 20px;
+}
+.world-company-nav > button {
+  border: 1px solid #d8e0ce;
+  background: #f3f6ea;
+  border-radius: 20px;
+  padding: 6px 10px;
+  font-family: ui-monospace, monospace;
+  font-size: 8px;
+  color: #596f4f;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.world-company-nav > button.active {
+  background: #304e3e;
+  border-color: #304e3e;
+  color: #e5f1d2;
+}
+.world-company-nav > button > span {
+  width: 4px;
+  height: 4px;
+  background: #a3b68a;
+  border-radius: 50%;
+}
+.world-company-nav > button.active > span {
+  background: #d6eb9b;
+}
+.world-footer {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 15px 24px;
+  border-top: 1px solid #dbe3d0;
+  background: #f0f3e7;
+}
+.world-footer > span {
+  font-family: ui-monospace, monospace;
+  font-size: 8px;
+  color: #586e49;
+  letter-spacing: 1.3px;
+  margin-right: auto;
+}
+.world-footer > button {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: #69805c;
+  font-size: 9px;
+}
+.world-classic {
+  padding: 17px;
+}
+.world-classic .market-stage {
+  box-shadow: none;
+}
+.world-empty {
+  padding: 30px;
+}
+.world-empty h2 {
+  color: #3f5c40;
+}
+.world-empty p {
+  font-size: 12px;
+  color: #6e8367;
+  margin: 10px 0 20px;
+}
+.map-company {
+  cursor: pointer;
+  outline: none;
+}
+.map-company:hover > rect {
+  stroke: #6b9575;
+  stroke-width: 2px;
+}
+@keyframes route-flow {
+  to {
+    stroke-dashoffset: -170;
+  }
+}
+@keyframes district-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes passport-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(12px) rotate(0);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(1.2deg);
+  }
+}
+@keyframes passport-line {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.world-still .city-route,
+.world-still .map-connection {
+  animation-play-state: paused !important;
+}
+@media (min-width: 1500px) {
+  .world-experience {
+    grid-template-columns: minmax(0, 1fr) 295px;
+    gap: 20px;
+    padding-right: 33px;
+  }
+  .world-intro h1 {
+    font-size: 66px;
+  }
+  .world-ticket {
+    padding: 21px 23px 15px;
+  }
+  .ticket-value > strong {
+    font-size: 30px;
+  }
+  .ticket-tear {
+    margin-left: -23px;
+    margin-right: -23px;
+  }
+}
+@media (max-width: 1200px) {
+  .world-experience {
+    grid-template-columns: minmax(0, 1fr) 240px;
+    padding-right: 21px;
+  }
+  .world-intro {
+    padding: 25px 25px 0;
+  }
+  .world-intro h1 {
+    font-size: 48px;
+  }
+  .world-intro > p {
+    max-width: 205px;
+    font-size: 10px;
+  }
+  .world-ticket {
+    padding: 15px 16px 12px;
+  }
+  .ticket-value > strong {
+    font-size: 23px;
+  }
+  .ticket-tear {
+    margin-left: -16px;
+    margin-right: -16px;
+  }
+  .world-toolbar {
+    padding: 13px 18px;
+    gap: 8px;
+  }
+  .world-edition > span {
+    display: none;
+  }
+  .world-modes button {
+    font-size: 9px;
+    padding: 7px;
+  }
+  .world-legend > small {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+}
+@media (max-width: 1000px) {
+  .world-experience {
+    grid-template-columns: minmax(0, 1fr) 215px;
+    padding-right: 16px;
+    gap: 0;
+  }
+  .world-scene-hint {
+    flex-wrap: wrap;
+    margin-top: 14px;
+    padding-left: 18px;
+  }
+  .world-scene-hint > span {
+    margin-left: 0;
+  }
+  .world-intro h1 {
+    font-size: 43px;
+  }
+  .world-intro > p {
+    max-width: 175px;
+  }
+  .world-modes button svg {
+    display: none;
+  }
+  .ticket-value > strong {
+    font-size: 21px;
+  }
+}
+@media (max-width: 900px) {
+  .world-experience {
+    grid-template-columns: 1fr;
+    padding: 0 20px;
+  }
+  .world-intro {
+    align-items: flex-start;
+  }
+  .world-intro > p {
+    max-width: 180px;
+  }
+  .world-canvas {
+    margin: 0 -12px;
+  }
+  .market-city-svg {
+    min-width: 480px;
+  }
+  .world-ticket {
+    transform: none;
+    max-width: none;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 22px;
+    margin: 0 6px 20px;
+    padding: 18px;
+    animation-name: district-arrive;
+  }
+  .world-ticket:before {
+    display: none;
+  }
+  .ticket-head {
+    grid-column: 1/-1;
+  }
+  .ticket-identity {
+    margin-top: 14px;
+  }
+  .ticket-value {
+    grid-column: 1;
+    margin-top: 9px;
+  }
+  .ticket-sparkline {
+    grid-column: 2;
+    grid-row: 2/4;
+    align-self: center;
+  }
+  .ticket-dates {
+    grid-column: 2;
+  }
+  .world-ticket dl {
+    grid-column: 1/-1;
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+    margin-top: 10px;
+  }
+  .world-ticket dl > div {
+    gap: 8px;
+  }
+  .ticket-research {
+    grid-column: 1/-1;
+  }
+  .ticket-tear,
+  .ticket-barcode {
+    display: none;
+  }
+  .ticket-source {
+    grid-column: 1/-1;
+    margin-top: 11px;
+  }
+  .ticket-source br {
+    display: none;
+  }
+  .world-legend > small {
+    margin-left: auto;
+    flex-basis: auto;
+  }
+  .world-company-nav {
+    padding-top: 0;
+  }
+}
+@media (max-width: 700px) {
+  .world-toolbar {
+    flex-wrap: wrap;
+    padding: 13px 15px 11px;
+  }
+  .world-edition {
+    font-size: 8px;
+    flex: 1;
+  }
+  .world-modes {
+    order: 3;
+    flex-basis: 100%;
+    margin-top: 4px;
+  }
+  .world-modes button {
+    justify-content: center;
+    flex: 1;
+    padding: 8px 5px;
+    font-size: 10px;
+  }
+  .world-modes button svg {
+    display: block;
+    width: 12px;
+  }
+  .world-intro {
+    display: block;
+    padding: 23px 20px 0;
+  }
+  .world-intro h1 {
+    font-size: 45px;
+    letter-spacing: -2px;
+  }
+  .world-intro > p {
+    max-width: none;
+    font-size: 11px;
+    margin: 15px 0 0;
+  }
+  .world-chapter {
+    font-size: 7px;
+    letter-spacing: 1.5px;
+  }
+  .world-experience {
+    padding: 0 12px;
+  }
+  .world-scene-hint {
+    font-size: 7px;
+    padding-left: 8px;
+    margin-top: 20px;
+  }
+  .world-scene-hint > span {
+    margin-left: auto;
+  }
+  .world-legend {
+    padding-left: 8px;
+    font-size: 7px;
+    margin: 4px 0 18px;
+    gap: 8px;
+  }
+  .world-legend > small {
+    margin-left: 0;
+    flex-basis: 100%;
+  }
+  .market-city-svg {
+    min-width: 480px;
+  }
+  .world-ticket {
+    margin: 0 3px 20px;
+    padding: 15px;
+    gap: 0 12px;
+  }
+  .ticket-identity h2 {
+    font-size: 13px;
+  }
+  .ticket-identity > span {
+    width: 27px;
+    height: 27px;
+  }
+  .ticket-identity p {
+    font-size: 7px;
+  }
+  .ticket-value > strong {
+    font-size: 23px;
+  }
+  .ticket-value small {
+    font-size: 7px;
+  }
+  .ticket-value > span {
+    font-size: 10px;
+  }
+  .world-ticket dl {
+    display: block;
+    margin-bottom: 12px;
+  }
+  .world-ticket dl > div {
+    font-size: 9px;
+    justify-content: space-between;
+  }
+  .ticket-source {
+    font-size: 8px;
+  }
+  .ticket-dates {
+    font-size: 6px;
+  }
+  .world-company-nav {
+    padding: 0 13px 19px;
+  }
+  .world-company-nav > button {
+    font-size: 9px;
+    padding: 7px 9px;
+  }
+  .world-footer {
+    flex-wrap: wrap;
+    gap: 15px;
+    padding: 15px 19px;
+  }
+  .world-footer > span {
+    font-size: 7px;
+    flex-basis: 100%;
+  }
+  .world-footer > button {
+    font-size: 10px;
+  }
+  .world-classic {
+    padding: 9px;
+  }
+}
+@media (max-width: 370px) {
+  .world-intro h1 {
+    font-size: 39px;
+  }
+  .world-ticket {
+    display: block;
+  }
+  .ticket-sparkline {
+    max-height: 70px;
+  }
+  .ticket-dates {
+    font-size: 8px;
+  }
+  .ticket-value > strong {
+    font-size: 27px;
+  }
+  .ticket-identity h2 {
+    font-size: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .city-route,
+  .map-connection,
+  .market-city-svg,
+  .world-ticket,
+  .ticket-price-line {
+    animation: none !important;
+  }
+  .world-modes button,
+  .building-outline,
+  .ticket-research {
+    transition: none;
+  }
+  .world-ticket {
+    transform: none;
+  }
+}
+@media print {
+  .world-toolbar,
+  .world-company-nav,
+  .world-footer {
+    display: none;
+  }
+  .market-world {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+  .world-ticket {
+    transform: none;
+  }
+}
+/* Keep the field-guide details legible alongside the illustration. */
+.world-edition,
+.world-edition > span,
+.world-chapter {
+  font-size: 10px;
+}
+.world-modes button {
+  font-size: 11px;
+}
+.world-intro > p {
+  font-size: 12px;
+}
+.world-scene-hint {
+  font-size: 10px;
+  flex-wrap: wrap;
+}
+.world-scene-hint > span {
+  font-size: 9px;
+}
+.world-legend,
+.world-legend > small {
+  font-size: 9px;
+}
+.ticket-head {
+  font-size: 10px;
+}
+.ticket-identity p,
+.world-ticket dl > div {
+  font-size: 10px;
+}
+.ticket-value small,
+.ticket-dates,
+.ticket-source {
+  font-size: 9px;
+}
+.ticket-research {
+  font-size: 11px;
+}
+.world-company-nav > button {
+  font-size: 10px;
+}
+.world-footer > span {
+  font-size: 9px;
+}
+.world-footer > button {
+  font-size: 11px;
+}
+@media (max-width: 1100px) {
+  .world-edition {
+    font-size: 8px;
+  }
+  .world-modes button {
+    font-size: 10px;
+  }
+  .world-chapter {
+    font-size: 9px;
+  }
+  .world-scene-hint > span {
+    margin-left: 0;
+  }
+}
+@media (max-width: 700px) {
+  .world-edition {
+    font-size: 9px;
+  }
+  .world-modes button {
+    font-size: 11px;
+  }
+  .world-intro > p {
+    font-size: 12px;
+  }
+  .world-ticket dl > div {
+    font-size: 10px;
+  }
+  .world-company-nav > button {
+    font-size: 10px;
+  }
+  .world-footer > span {
+    font-size: 9px;
+  }
+}

@@ -33,3 +33,7 @@ This log is updated with the actual build/deployment result when it is available
 ### Company discovery and visual redesign — 28 October 2026
 
 23 tests pass. API-level checks (not browser clicks): Wipro/Toyota multi-exchange search; Samsung 245 KRW sessions, Wipro 248 INR sessions and Apple 251 USD sessions at test time; Wipro primary report discovery and five dated announcements. SEC discovery returned 403 and its failure state was exercised. Tests cover symbol validation, exchange preservation, arbitrary remote equities, safe SEC URL construction, announcement dates and exclusion of aggregator summary text. The local homepage SSR includes the new chart stage and pause control. Browser host unavailable and native Chrome timeout prevent visual/browser interaction verification.
+
+### Field-guide interface — 28 October 2026
+
+26 tests pass. New cases cover actual latest-session values, duplicate/missing holdings, absence of fabricated comparisons for a single session, safe flat-price sparkline geometry and shared isometric face corners. Actual React city/map SVG renders were inspected as images, and the initial SVG-title warning was corrected. Selected caption/action/down-session contrast ratios are 4.84, 5.05, 5.10 and 8.41. These targeted checks do not constitute a whole-app accessibility audit. Production compilation passes. Native Chrome read/screenshot access recovered after a retry; control/navigation remains intermittent, so a full browser interaction/responsive QA pass is not claimed.

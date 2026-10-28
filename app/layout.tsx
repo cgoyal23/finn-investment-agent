@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./finance-theme.css";
+import "./market-world.css";
 export const metadata: Metadata = {
   title: "FINN — Your investment attention, focused",
   description:
