@@ -1,9 +1,10 @@
+import Link from "next/link";
 export default function Privacy() {
   return (
     <main className="legal-page">
-      <a href="/" className="login-wordmark">
+      <Link href="/" className="login-wordmark">
         finn<span>.</span>
-      </a>
+      </Link>
       <h1>Your information, explained.</h1>
       <p>
         FINN is an investment-research prototype maintained by the owner of the
@@ -19,12 +20,12 @@ export default function Privacy() {
       </p>
       <h2>Your desk and notebook</h2>
       <p>
-        Watchlists, notes, saved insights, comparison choices and alert settings
-        are stored in this browser. They are not synchronised across devices.
-        Signed-in accounts use separate local desk records in this browser; the
-        sample desk has its own records. Signing out does not erase those
-        records. Remove private notes and clear site storage before sharing a
-        browser.
+        Watchlists, notes, saved insights, review baselines, game progress and
+        alert settings are stored in this browser. They are not synchronised
+        across devices. Signed-in accounts use separate local desk records in
+        this browser; the sample desk has its own records. Signing out does not
+        erase those records. Remove private notes and clear site storage before
+        sharing a browser.
       </p>
       <h2>Research requests</h2>
       <p>

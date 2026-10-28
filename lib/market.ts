@@ -13,6 +13,7 @@ export type MarketSeries = {
   points: PricePoint[];
   cached?: boolean;
   warning?: string;
+  notice?: string;
 };
 export function percentChange(
   current: number,

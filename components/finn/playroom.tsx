@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
@@ -15,7 +15,6 @@ import {
   RotateCcw,
   Search,
   SkipForward,
-  Sparkles,
   Target,
   Timer,
   Trophy,
@@ -154,7 +153,7 @@ export function Playroom({ storageKey }: { storageKey: string }) {
     [notice, setNotice] = useState(""),
     [level, setLevel] = useState<Level>("starter"),
     [timed, setTimed] = useState(true),
-    [now, setNow] = useState(Date.now());
+    [now, setNow] = useState(0);
   const resultsRef = useRef<HTMLElement>(null),
     questionRef = useRef<HTMLHeadingElement>(null);
   const inputRef = useRef<HTMLInputElement>(null),
@@ -164,6 +163,8 @@ export function Playroom({ storageKey }: { storageKey: string }) {
     key = storageKey + "-playroom";
   useEffect(() => {
     try {
+      // Browser-only progress must be restored after hydration.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStats(restoreStats(JSON.parse(localStorage.getItem(key) || "null")));
     } catch {
       setNotice("Progress could not be restored. You can still play.");
@@ -175,6 +176,8 @@ export function Playroom({ storageKey }: { storageKey: string }) {
     try {
       localStorage.setItem(key, JSON.stringify(stats));
     } catch {
+      // Report localStorage failure so players can keep their score manually.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setNotice(
         "Progress could not be saved in this browser. Copy your result to keep a record.",
       );
@@ -208,16 +211,16 @@ export function Playroom({ storageKey }: { storageKey: string }) {
       if (run.questions[run.index].options) questionRef.current?.focus();
       else inputRef.current?.focus();
     }
-  }, [feedback, run?.index, run?.paused]);
+  }, [feedback, run]);
   useEffect(() => {
     if (result) resultsRef.current?.focus();
-  }, [result?.record.id]);
+  }, [result]);
   const remaining = run?.timed
     ? run.paused
       ? run.remaining
       : remainingTime(run.deadline!, now)
     : 0;
-  const finish = (current: Run) => {
+  const finish = useCallback((current: Run) => {
     if (finished.current === current.id) return;
     finished.current = current.id;
     const record: GameRecord = {
@@ -235,10 +238,10 @@ export function Playroom({ storageKey }: { storageKey: string }) {
     setRun(null);
     setFeedback(null);
     setStats((s) => recordGame(s, record));
-  };
+  }, []);
   useEffect(() => {
     if (run?.timed && !run.paused && remaining <= 0) finish(run);
-  }, [remaining, run?.id, run?.paused]);
+  }, [remaining, run, finish]);
   const start = (game: GameId) => {
     const day = indiaDay(),
       activeLevel = game === "sprint" ? level : "starter",
@@ -271,9 +274,9 @@ export function Playroom({ storageKey }: { storageKey: string }) {
       day,
     });
   };
-  const check = (given: string | number | null) => {
+  const check = (given: string | number | null, answeredAt: number) => {
     if (!run || feedback || run.paused) return;
-    if (run.timed && remainingTime(run.deadline!, Date.now()) === 0) {
+    if (run.timed && remainingTime(run.deadline!, answeredAt) === 0) {
       finish(run);
       return;
     }
@@ -342,7 +345,7 @@ export function Playroom({ storageKey }: { storageKey: string }) {
       </section>
     );
   return (
-    <div className="playroom">
+    <div className="playroom" data-active={!!run || !!result}>
       <div className="play-heading">
         <div>
           <div className="eyebrow">
@@ -350,9 +353,7 @@ export function Playroom({ storageKey }: { storageKey: string }) {
             THE FINN PLAYROOM
           </div>
           <h1>
-            A little play.
-            <br />
-            <em>A sharper mind.</em>
+            Play. Learn. <em>Repeat.</em>
           </h1>
           <p>Build number sense. Read the signals. Question the evidence.</p>
         </div>
@@ -382,11 +383,8 @@ export function Playroom({ storageKey }: { storageKey: string }) {
               <span className="play-overline">
                 TODAY’S DAILY MIX · {today} · IST
               </span>
-              <h2>Eight questions. One fresh perspective.</h2>
-              <p>
-                A shared daily set of maths, returns and evidence puzzles. Take
-                your time.
-              </p>
+              <h2>Your daily eight.</h2>
+              <p>Numbers, returns and evidence. No timer.</p>
               <small>
                 {dailyDone
                   ? "Completed today. Replay to improve your personal score."
@@ -530,12 +528,15 @@ export function Playroom({ storageKey }: { storageKey: string }) {
               ))}
             </section>
           )}
-          <p className="play-footnote">
-            +10 points for a correct answer, plus a 2–10 point streak bonus. A
-            wrong answer or skip resets the answer streak. Daily practice
-            streaks count calendar days in India Standard Time. Scores are
-            personal browser records.
-          </p>
+          <details className="play-footnote">
+            <summary>How points & streaks work</summary>
+            <p>
+              +10 points for a correct answer, plus a 2–10 point streak bonus. A
+              wrong answer or skip resets the answer streak. Daily practice
+              streaks count calendar days in India Standard Time. Scores are
+              personal browser records.
+            </p>
+          </details>
         </>
       )}
       {run && (
@@ -651,7 +652,7 @@ export function Playroom({ storageKey }: { storageKey: string }) {
                               : ""
                           : ""
                       }
-                      onClick={() => check(i)}
+                      onClick={() => check(i, Date.now())}
                     >
                       <span>{String.fromCharCode(65 + i)}</span>
                       {option}
@@ -674,7 +675,7 @@ export function Playroom({ storageKey }: { storageKey: string }) {
                       setError("Enter a number, such as 12 or 12.5.");
                       return;
                     }
-                    check(input);
+                    check(input, Date.now());
                   }}
                 >
                   <label htmlFor="play-answer">Your answer</label>
@@ -746,7 +747,10 @@ export function Playroom({ storageKey }: { storageKey: string }) {
                   </button>
                 </div>
               ) : (
-                <button className="play-skip" onClick={() => check(null)}>
+                <button
+                  className="play-skip"
+                  onClick={() => check(null, Date.now())}
+                >
                   <SkipForward size={13} />
                   Skip and see why
                 </button>
@@ -784,12 +788,12 @@ export function Playroom({ storageKey }: { storageKey: string }) {
             {result.record.answered
               ? result.record.correct === result.record.answered
                 ? "That was sharp."
-                : "A little sharper than before."
+                : "Round complete."
               : "Ready when you are."}
           </h2>
           <p>
             {result.record.answered
-              ? "The best part is knowing why. Keep the lessons, then try another round."
+              ? "See what you learned. Try another round."
               : "No answers were submitted, so your progress has not changed."}
           </p>
           <div className="result-numbers">

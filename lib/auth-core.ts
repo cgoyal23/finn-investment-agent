@@ -83,6 +83,25 @@ export async function createChallenge(secret: string) {
     .sign(key(secret));
   return { nonce, csrf, token };
 }
+export async function reusableChallenge(token: string, secret: string) {
+  try {
+    const { payload } = await jwtVerify(token, key(secret), {
+      algorithms: ["HS256"],
+      issuer: "finn",
+      audience: "finn-login",
+    });
+    if (
+      typeof payload.nonce !== "string" ||
+      typeof payload.csrf !== "string" ||
+      typeof payload.exp !== "number" ||
+      payload.exp * 1000 - Date.now() < 60000
+    )
+      return null;
+    return { token, nonce: payload.nonce, csrf: payload.csrf };
+  } catch {
+    return null;
+  }
+}
 export async function verifyChallenge(
   token: string,
   csrf: string,
@@ -103,7 +122,17 @@ export async function verifyChallenge(
 }
 export function sameOrigin(request: Request) {
   const origin = request.headers.get("origin");
-  return !!origin && origin === new URL(request.url).origin;
+  if (!origin) return false;
+  const url = new URL(request.url);
+  // Next may use its internal localhost URL while serving a 127.0.0.1 Host.
+  // Host is the browser's destination; do not trust forwarded-host overrides.
+  const host = request.headers.get("host") || url.host;
+  try {
+    const expected = new URL(`${url.protocol}//${host}`);
+    return expected.host === host && origin === expected.origin;
+  } catch {
+    return false;
+  }
 }
 export function cookieValue(request: Request, name: string) {
   const raw = (request.headers.get("cookie") || "")

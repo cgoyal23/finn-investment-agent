@@ -433,6 +433,8 @@ export function MarketWorld({
   useEffect(() => {
     try {
       const saved = localStorage.getItem("finn-world-view");
+      // Restore the external browser preference after hydration.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (["city", "map", "chart"].includes(saved || "")) setMode(saved!);
     } catch {}
   }, []);

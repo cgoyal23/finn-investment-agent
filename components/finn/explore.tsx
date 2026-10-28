@@ -3,19 +3,14 @@ import { useMemo, useRef, useState } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
-  ArrowDownRight,
-  ChartNoAxesCombined,
   Check,
-  ChevronRight,
   Download,
   FileText,
   Info,
   Plus,
   Search,
-  Target,
   Trash2,
   X,
-  BookOpen,
   Bookmark,
   Layers,
 } from "lucide-react";
@@ -363,20 +358,24 @@ export function CompareExplorer({
                   strokeDasharray="4 4"
                 />
               )}
-              {[0, Math.floor(points.length / 2), points.length - 1].map(
-                (i) => (
-                  <text
-                    key={i}
-                    x={x(i)}
-                    y={H - 8}
-                    fill="#819174"
-                    textAnchor={i === 0 ? "start" : "middle"}
-                    fontSize="10"
-                  >
-                    {date(points[i].date)}
-                  </text>
-                ),
-              )}
+              {[
+                ...new Set([
+                  0,
+                  Math.floor(points.length / 2),
+                  points.length - 1,
+                ]),
+              ].map((i) => (
+                <text
+                  key={i}
+                  x={x(i)}
+                  y={H - 8}
+                  fill="#819174"
+                  textAnchor={i === 0 ? "start" : "middle"}
+                  fontSize="10"
+                >
+                  {date(points[i].date)}
+                </text>
+              ))}
             </svg>
             <label className="comparison-scrubber">
               Inspect a session{" "}
@@ -567,6 +566,7 @@ export function ResearchNotebook({
             ]);
             setTitle("");
             setText("");
+            setReviewOn("");
             setAdding(false);
             onToast("Note saved in your research notebook.");
           }}
@@ -880,7 +880,7 @@ export function EventTimeline({
       title: f.title,
       body: f.summary,
       url: evidence.find((s) => s.id === f.source)?.url || "",
-      filing: f,
+      filing: f as Filing | null,
       kind: f.category,
     }));
   if (symbol === "INFY") {
@@ -891,7 +891,7 @@ export function EventTimeline({
       title: "The original outlook",
       body: "Management set FY2026 growth guidance of 0–3% in constant currency and an operating-margin range of 20–22%.",
       url: guide.url,
-      filing: null as any,
+      filing: null,
       kind: "Management commentary",
     });
   }
@@ -916,7 +916,7 @@ export function EventTimeline({
               {e.filing ? (
                 <button
                   className="text-button"
-                  onClick={() => onOpen(e.filing)}
+                  onClick={() => e.filing && onOpen(e.filing)}
                 >
                   Inspect this disclosure <ArrowUpRight size={13} />
                 </button>

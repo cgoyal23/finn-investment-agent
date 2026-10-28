@@ -32,6 +32,8 @@ test("company lookup keeps exchange identity and does not turn Samsung or US sto
   );
 });
 test("remote company search resolves arbitrary equities and rejects unsupported or unsafe results", () => {
+  for (const value of [null, undefined, 42, "bad", {}])
+    assert.equal(directory.normalizeSearchQuote(value), null);
   assert.deepEqual(
     directory.normalizeSearchQuote({
       symbol: "TOYOF",
@@ -79,6 +81,14 @@ test("remote company search resolves arbitrary equities and rejects unsupported 
     "",
   ])
     assert.equal(directory.validCompanySymbol(symbol), false);
+});
+test("document titles decode numeric HTML entities for readable announcements", async () => {
+  const parser = await import(url(transpile("../lib/document-parser.ts")));
+  const docs = parser.parsePrimaryDocuments(
+    '<section id="documents"><a href="https://www.bseindia.com/example.pdf">Syngenta&#x27;s report &#8212; Q2 &amp; FY26</a></section>',
+    "INFY",
+  );
+  assert.equal(docs[0].title, "Syngenta's report — Q2 & FY26");
 });
 test("SEC discovery maps a new ticker to its own CIK and only constructs safe official filing URLs", async () => {
   const sec = await import(url(transpile("../lib/sec-discovery.ts")));

@@ -1,22 +1,28 @@
 "use client";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { LogOut, UserRound, ArrowUpRight } from "lucide-react";
+import { LogOut, UserRound } from "lucide-react";
 export function AccountMenu() {
+  const router = useRouter();
   const [user, setUser] = useState<{ name: string; email: string } | null>(
     null,
   );
   const [open, setOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const [error, setError] = useState("");
   useEffect(() => {
     fetch("/api/auth")
       .then((r) => r.json())
-      .then((d: any) => setUser(d.user || null))
+      .then((d) =>
+        setUser((d as { user?: { name: string; email: string } }).user || null),
+      )
       .catch(() => {});
   }, []);
   return (
     <div className="account-control">
       <button
         className="account-button"
-        onClick={() => (user ? setOpen(!open) : location.assign("/login"))}
+        onClick={() => (user ? setOpen(!open) : router.push("/login"))}
         aria-label={user ? "Open account menu" : "Sign in with Google"}
       >
         <span className="account-avatar">
@@ -44,14 +50,29 @@ export function AccountMenu() {
             enable cloud sync.
           </p>
           <button
+            disabled={signingOut}
             onClick={async () => {
-              await fetch("/api/auth/logout", { method: "POST" });
-              location.assign("/login");
+              setSigningOut(true);
+              setError("");
+              try {
+                const response = await fetch("/api/auth/logout", {
+                  method: "POST",
+                  signal: AbortSignal.timeout(10000),
+                });
+                if (!response.ok) throw Error();
+                router.push("/login");
+              } catch {
+                setError(
+                  "Sign-out did not complete. Check your connection and retry.",
+                );
+                setSigningOut(false);
+              }
             }}
           >
             <LogOut size={14} />
-            Sign out
+            {signingOut ? "Signing out…" : "Sign out"}
           </button>
+          {error && <p role="alert">{error}</p>}
         </div>
       )}
     </div>

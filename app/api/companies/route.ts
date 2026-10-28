@@ -27,10 +27,12 @@ export async function GET(request: Request) {
       },
     );
     if (!r.ok) throw Error();
-    const data: any = await r.json();
-    const remote: CompanyIdentity[] = (data.quotes || [])
+    const data = (await r.json()) as { quotes?: unknown };
+    const remote: CompanyIdentity[] = (
+      Array.isArray(data.quotes) ? data.quotes : []
+    )
       .map(normalizeSearchQuote)
-      .filter(Boolean);
+      .filter((item): item is CompanyIdentity => item !== null);
     remote.sort(
       (a, b) =>
         (a.symbol.endsWith(".NS") ? -1 : a.symbol.endsWith(".BO") ? 0 : 1) -

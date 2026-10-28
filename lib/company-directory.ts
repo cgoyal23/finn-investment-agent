@@ -71,23 +71,27 @@ export function localCompanyMatches(q: string) {
         .slice(0, 10)
     : [];
 }
-export function normalizeSearchQuote(q: any): CompanyIdentity | null {
+export function normalizeSearchQuote(value: unknown): CompanyIdentity | null {
+  if (!value || typeof value !== "object") return null;
+  const q = value as Record<string, unknown>;
+  const name = q.longname || q.shortname;
   if (
     q.quoteType !== "EQUITY" ||
     typeof q.symbol !== "string" ||
-    typeof (q.longname || q.shortname) !== "string"
+    typeof name !== "string"
   )
     return null;
-  let symbol = q.symbol.toUpperCase();
+  const sourceSymbol = q.symbol.toUpperCase();
+  let symbol = sourceSymbol;
   if (!symbol.includes(".")) symbol += ".US";
   const known = companyDirectory.find(
-    (c) => providerSymbol(c.symbol) === q.symbol.toUpperCase(),
+    (c) => providerSymbol(c.symbol) === sourceSymbol,
   );
   if (known) return known;
   if (!validCompanySymbol(symbol)) return null;
   return {
     symbol,
-    name: (q.longname || q.shortname).slice(0, 120),
+    name: name.slice(0, 120),
     exchange: String(q.exchDisp || q.exchange || "Exchange unconfirmed").slice(
       0,
       60,

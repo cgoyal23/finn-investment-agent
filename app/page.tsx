@@ -1,4 +1,6 @@
 "use client";
+import type { DiscoveredDocument } from "@/lib/discovery";
+import { MobileDesk } from "@/components/finn/mobile-desk";
 import { Playroom } from "@/components/finn/playroom";
 import { CompanyLookup } from "@/components/finn/company-lookup";
 import { CompanyWorkspace } from "@/components/finn/company-workspace";
@@ -13,9 +15,7 @@ import { DailyReview } from "@/components/finn/daily-review";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowUpRight,
-  ArrowDownRight,
   ArrowRight,
-  ArrowLeft,
   LayoutDashboard,
   ChartNoAxesCombined,
   Search,
@@ -31,13 +31,11 @@ import {
   FileText,
   ExternalLink,
   Sparkles,
-  Send,
   RefreshCw,
   Clock,
   Target,
   Layers,
   ShieldCheck,
-  Download,
   Menu,
   LoaderCircle,
   SlidersHorizontal,
@@ -45,7 +43,6 @@ import {
   Info,
   Activity,
   BookOpen,
-  Command,
   Flag,
   GitCompareArrows,
   NotebookPen,
@@ -81,6 +78,12 @@ import {
 } from "@/components/finn/explore";
 import { AccountMenu } from "@/components/finn/account";
 import type { ResearchNote } from "@/lib/insights";
+import {
+  latestRequest,
+  restoreDeskState,
+  type DeskState,
+  type Thesis,
+} from "@/lib/workspace";
 type View =
   | "briefing"
   | "portfolio"
@@ -90,9 +93,11 @@ type View =
   | "compare"
   | "notebook"
   | "arcade";
-type Thesis = { id: string; symbol: string; text: string; tags: string[] };
 type ResearchAnswer = {
   mode: string;
+  question?: string;
+  symbol?: string;
+  loginRequired?: boolean;
   answer: string;
   citations: { id: string; title: string; url: string; locator: string }[];
   limitations?: string;
@@ -102,6 +107,18 @@ type ResearchAnswer = {
   error?: string;
 };
 const snapshot = marketSnapshot as Record<string, MarketSeries>;
+const defaultDesk: DeskState = {
+  watchlist: companies.map((c) => c.symbol),
+  saved: [],
+  notes: [],
+  theses: defaultTheses,
+  settings: {
+    price: 4,
+    volume: 2,
+    categories: ["Results", "Guidance", "Annual report"],
+    market: true,
+  },
+};
 const navItems = [
   { id: "briefing", label: "Briefing", icon: LayoutDashboard },
   { id: "portfolio", label: "Portfolio", icon: ChartNoAxesCombined },
@@ -267,7 +284,17 @@ function PriceChart({
   onFiling?: (filing: Filing) => void;
 }) {
   const pts = rangePoints(series.points, range);
-  const [hover, setHover] = useState<number | null>(null);
+  const chartIdentity = series.symbol + ":" + range;
+  const [selection, setSelection] = useState<{
+    chart: string;
+    index: number | null;
+  }>({ chart: chartIdentity, index: null });
+  const hover =
+    selection.chart === chartIdentity && selection.index !== null
+      ? Math.min(selection.index, pts.length - 1)
+      : null;
+  const setHover = (index: number | null) =>
+    setSelection({ chart: chartIdentity, index });
   const [showVolume, setShowVolume] = useState(true);
   const [showEvents, setShowEvents] = useState(true);
   const chartRef = useRef<SVGSVGElement>(null);
@@ -282,7 +309,12 @@ function PriceChart({
     observer.observe(chartRef.current);
     return () => observer.disconnect();
   }, []);
-  useEffect(() => setHover(null), [series.symbol, range]);
+  if (!pts.length)
+    return (
+      <p className="empty-state" role="status">
+        No completed price sessions are available for this period.
+      </p>
+    );
   const W = chartWidth,
     H = 265,
     L = 12,
@@ -475,10 +507,12 @@ function PriceChart({
           );
         })}
         {[
-          0,
-          Math.floor(pts.length / 3),
-          Math.floor((pts.length * 2) / 3),
-          pts.length - 1,
+          ...new Set([
+            0,
+            Math.floor(pts.length / 3),
+            Math.floor((pts.length * 2) / 3),
+            pts.length - 1,
+          ]),
         ].map((i) => (
           <text
             key={i}
@@ -553,6 +587,7 @@ function PriceChart({
 }
 export default function Home() {
   const [view, setView] = useState<View>("briefing");
+  const [worldOpen, setWorldOpen] = useState(false);
   const [symbol, setSymbol] = useState("INFY");
   const [range, setRange] = useState("6M");
   const [allMarkets, setAllMarkets] =
@@ -578,7 +613,7 @@ export default function Home() {
   const [storageKey, setStorageKey] = useState("finn-v1");
   const [days, setDays] = useState(0);
   const [category, setCategory] = useState("All");
-  const [filingSymbol, setFilingSymbol] = useState("All");
+  const [filingSymbol] = useState("All");
   const [routine, setRoutine] = useState(false);
   const [savedOnly, setSavedOnly] = useState(false);
   const [portfolioQuery, setPortfolioQuery] = useState("");
@@ -586,7 +621,9 @@ export default function Home() {
   const [sort, setSort] = useState("name");
   const [researchSymbol, setResearchSymbol] = useState("INFY");
   const [researchIdentity, setResearchIdentity] =
-    useState<CompanyIdentity | null>(null);
+    useState<CompanyIdentity | null>(
+      companyDirectory.find((c) => c.symbol === "INFY") || null,
+    );
   const [researchTab, setResearchTab] = useState("Overview");
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState<ResearchAnswer | null>(null);
@@ -594,7 +631,7 @@ export default function Home() {
   const [extract, setExtract] = useState("");
   const [documentName, setDocumentName] = useState("");
   const [extractOpen, setExtractOpen] = useState(false);
-  const [documents, setDocuments] = useState<any[] | null>(null);
+  const [documents, setDocuments] = useState<DiscoveredDocument[] | null>(null);
   const [discovering, setDiscovering] = useState(false);
   const [documentWarning, setDocumentWarning] = useState("");
   const [refreshing, setRefreshing] = useState(false);
@@ -607,59 +644,50 @@ export default function Home() {
   const [thesisText, setThesisText] = useState("");
   const [thesisTags, setThesisTags] = useState("growth, margin");
   const answerRef = useRef<HTMLDivElement>(null);
+  const researchRequest = useRef(latestRequest());
+  const discoveryRequest = useRef(latestRequest());
+  const uploadRequest = useRef(latestRequest());
+  useEffect(
+    () => () => {
+      researchRequest.current.cancel();
+      discoveryRequest.current.cancel();
+      uploadRequest.current.cancel();
+    },
+    [],
+  );
   useEffect(() => {
+    const controller = new AbortController();
     const restoreDesk = (userId?: string) => {
-      const key = userId ? "finn-v2-" + userId : "finn-v1";
+      if (controller.signal.aborted) return;
+      const key =
+        typeof userId === "string" && userId ? "finn-v2-" + userId : "finn-v1";
       setStorageKey(key);
+      let restored = defaultDesk;
       try {
-        const s = JSON.parse(localStorage.getItem(key) || "null");
-        if (s) {
-          if (Array.isArray(s.watchlist))
-            setWatchlist(
-              s.watchlist.filter((v: unknown) => typeof v === "string"),
-            );
-          if (Array.isArray(s.saved))
-            setSaved(s.saved.filter((v: unknown) => typeof v === "string"));
-          if (Array.isArray(s.notes))
-            setNotes(
-              s.notes.filter(
-                (n: any) =>
-                  n &&
-                  typeof n.id === "string" &&
-                  typeof n.title === "string" &&
-                  typeof n.text === "string" &&
-                  typeof n.symbol === "string" &&
-                  typeof n.createdAt === "string" &&
-                  Array.isArray(n.sources),
-              ),
-            );
-          if (Array.isArray(s.theses))
-            setTheses(
-              s.theses.filter(
-                (t: any) =>
-                  t &&
-                  typeof t.id === "string" &&
-                  typeof t.text === "string" &&
-                  typeof t.symbol === "string" &&
-                  Array.isArray(t.tags),
-              ),
-            );
-          if (s.settings)
-            setSettings({
-              price: Math.min(10, Math.max(0.5, Number(s.settings.price) || 4)),
-              volume: Math.min(5, Math.max(1, Number(s.settings.volume) || 2)),
-              categories: Array.isArray(s.settings.categories)
-                ? s.settings.categories
-                : [],
-              market: s.settings.market !== false,
-            });
-        }
-      } catch {}
+        restored = restoreDeskState(
+          JSON.parse(localStorage.getItem(key) || "null"),
+          defaultDesk,
+        );
+      } catch {
+        setToast(
+          "Saved desk data could not be read. The sample desk is available.",
+        );
+      }
+      setWatchlist(restored.watchlist);
+      setSaved(restored.saved);
+      setNotes(restored.notes);
+      setTheses(restored.theses);
+      setSettings(restored.settings);
       setLoaded(true);
     };
-    fetch("/api/auth")
-      .then((r) => r.json())
-      .then((d: any) => restoreDesk(d.user?.id))
+    fetch("/api/auth", {
+      signal: AbortSignal.any([controller.signal, AbortSignal.timeout(10000)]),
+    })
+      .then((r) => {
+        if (!r.ok) throw Error();
+        return r.json();
+      })
+      .then((d) => restoreDesk((d as { user?: { id: string } }).user?.id))
       .catch(() => restoreDesk());
     const syncHash = () => {
       const h = location.hash.slice(1);
@@ -669,7 +697,7 @@ export default function Home() {
     window.addEventListener("hashchange", syncHash);
     fetch("/api/status")
       .then((r) => r.json())
-      .then((d: any) => setApiStatus(d))
+      .then((d) => setApiStatus(d as { aiConfigured: boolean; model: string }))
       .catch(() => {});
     const key = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -687,6 +715,7 @@ export default function Home() {
     };
     document.addEventListener("keydown", key);
     return () => {
+      controller.abort();
       document.removeEventListener("keydown", key);
       window.removeEventListener("hashchange", syncHash);
     };
@@ -699,6 +728,8 @@ export default function Home() {
           JSON.stringify({ watchlist, saved, theses, settings, notes }),
         );
       } catch {
+        // Surface an external storage failure instead of silently losing the user’s work.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setToast(
           "Browser storage is full or unavailable. Export your notebook to keep a copy.",
         );
@@ -762,6 +793,14 @@ export default function Home() {
     });
   };
   const openResearch = (s: string) => {
+    researchRequest.current.cancel();
+    discoveryRequest.current.cancel();
+    uploadRequest.current.cancel();
+    setAsking(false);
+    setDiscovering(false);
+    setQuestion("");
+    setDocumentWarning("");
+    setExtractOpen(false);
     setResearchSymbol(s);
     setResearchIdentity(companyDirectory.find((c) => c.symbol === s) || null);
     setAnswer(null);
@@ -814,7 +853,7 @@ export default function Home() {
     ),
     {
       days,
-      now: new Date().toISOString().slice(0, 10),
+      now: new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }),
       category,
       symbol: filingSymbol,
       routine,
@@ -856,12 +895,12 @@ export default function Home() {
       const r = await fetch(
         "/api/market?symbol=" + encodeURIComponent(s) + "&refresh=1",
       );
-      const d: any = await r.json();
+      const d = (await r.json()) as MarketSeries & { error?: string };
       if (!r.ok) throw Error(d.error);
       setAllMarkets((m) => ({ ...m, [s]: d }));
       setToast(
         d.warning ||
-          `Prices refreshed for ${s}. Latest session: ${shortDate(d.points.at(-1).date)}.`,
+          `Prices refreshed for ${s}. Latest session: ${shortDate(d.points.at(-1)!.date)}.`,
       );
     } catch (e) {
       setToast(e instanceof Error ? e.message : "Could not refresh prices.");
@@ -871,68 +910,96 @@ export default function Home() {
   };
   const ask = async (q = question) => {
     if (!q.trim() || asking) return;
-    setQuestion(q);
+    const pending = researchRequest.current.begin();
+    const submittedQuestion = q.trim();
+    const submittedSymbol = researchSymbol;
+    setQuestion(submittedQuestion);
     setAsking(true);
     setAnswer(null);
     try {
       const r = await fetch("/api/research", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: AbortSignal.any([pending.signal, AbortSignal.timeout(90000)]),
         body: JSON.stringify({
-          symbol: researchSymbol,
-          question: q,
+          symbol: submittedSymbol,
+          question: submittedQuestion,
           extract,
           documentName,
         }),
       });
-      const d: any = await r.json();
-      setAnswer(
-        r.ok
+      const d = (await r.json()) as ResearchAnswer & {
+        documents?: DiscoveredDocument[];
+      };
+      if (!pending.current()) return;
+      setAnswer({
+        ...(r.ok
           ? d
           : {
               mode: "error",
               answer: d.error || "Research unavailable.",
               citations: [],
-            },
-      );
-      if (d.documents) setDocuments(d.documents);
-    } catch {
+              loginRequired: d.loginRequired === true,
+            }),
+        question: submittedQuestion,
+        symbol: submittedSymbol,
+      });
+      if (Array.isArray(d.documents)) setDocuments(d.documents);
+    } catch (error) {
+      if (!pending.current()) return;
       setAnswer({
         mode: "error",
-        answer: "The connection was interrupted. Please retry.",
+        question: submittedQuestion,
+        symbol: submittedSymbol,
+        answer:
+          error instanceof Error && error.name === "TimeoutError"
+            ? "Research took too long. Please retry or use a shorter source extract."
+            : "The connection was interrupted. Please retry.",
         citations: [],
       });
     } finally {
-      setAsking(false);
-      setTimeout(
-        () =>
-          answerRef.current?.scrollIntoView({
-            behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
-              .matches
-              ? "auto"
-              : "smooth",
-            block: "nearest",
-          }),
-        100,
-      );
+      if (pending.current()) {
+        setAsking(false);
+        setTimeout(() => {
+          if (pending.current())
+            answerRef.current?.scrollIntoView({
+              behavior: window.matchMedia("(prefers-reduced-motion: reduce)")
+                .matches
+                ? "auto"
+                : "smooth",
+              block: "nearest",
+            });
+        }, 100);
+      }
     }
   };
   const discover = async () => {
+    const pending = discoveryRequest.current.begin();
     setDiscovering(true);
     setDocumentWarning("");
     try {
       const r = await fetch(
         "/api/documents?symbol=" + encodeURIComponent(researchSymbol),
+        {
+          signal: AbortSignal.any([pending.signal, AbortSignal.timeout(20000)]),
+        },
       );
-      const d: any = await r.json();
-      setDocuments(d.documents || []);
-      setDocumentWarning(d.warning || d.error || "");
+      const d = (await r.json()) as {
+        documents?: DiscoveredDocument[];
+        warning?: string;
+        error?: string;
+      };
+      if (!pending.current()) return;
+      if (!r.ok) throw Error(d.error || "Document discovery failed.");
+      setDocuments(Array.isArray(d.documents) ? d.documents : []);
+      setDocumentWarning(d.warning || "");
     } catch {
-      setDocumentWarning(
-        "Document discovery is temporarily unavailable. Paste a primary-source extract instead.",
-      );
+      if (pending.current())
+        setDocumentWarning(
+          "Document discovery is temporarily unavailable. Paste a primary-source extract instead.",
+        );
     } finally {
-      setDiscovering(false);
+      if (pending.current()) setDiscovering(false);
     }
   };
   const exportBrief = () => {
@@ -957,18 +1024,33 @@ export default function Home() {
   };
   const readFile = async (file: File | undefined) => {
     if (!file) return;
+    const pending = uploadRequest.current.begin();
+    if (!/\.(txt|md)$/i.test(file.name)) {
+      setToast("Choose a .txt or .md source extract.");
+      return;
+    }
     if (file.size > 200000) {
       setToast("Please upload a text extract under 200 KB.");
       return;
     }
-    const t = await file.text();
-    if (t.length > 50000) {
-      setToast("Please keep the source extract under 50,000 characters.");
-      return;
+    try {
+      const text = await file.text();
+      if (!pending.current()) return;
+      if (text.length > 50000) {
+        setToast("Please keep the source extract under 50,000 characters.");
+        return;
+      }
+      if (!text.trim() || text.includes("\0")) {
+        setToast("Choose a readable text extract with source content.");
+        return;
+      }
+      setExtract(text);
+      setDocumentName(file.name.slice(0, 100));
+      setToast("Source text added. Ask a question about this document.");
+    } catch {
+      if (pending.current())
+        setToast("This file could not be read. Try another text extract.");
     }
-    setExtract(t);
-    setDocumentName(file.name);
-    setToast("Source text added. Ask a question about this document.");
   };
   const saveAnswer = () => {
     if (!answer || answer.mode === "error" || answer.mode === "needs-sources")
@@ -976,8 +1058,9 @@ export default function Home() {
     setNotes((items) => [
       {
         id: crypto.randomUUID(),
-        symbol: researchSymbol,
-        title: question.slice(0, 120) || "Research insight",
+        symbol: answer.symbol || researchSymbol,
+        title:
+          (answer.question || question).slice(0, 120) || "Research insight",
         text:
           answer.answer +
           (answer.limitations
@@ -1148,7 +1231,7 @@ export default function Home() {
             go("portfolio");
           }}
         />
-        <main key={view} className="workspace-content">
+        <main key={view} className={"workspace-content view-" + view}>
           <div className="desk-tools">
             <span>YOUR RESEARCH DESK</span>
             <div>
@@ -1187,13 +1270,42 @@ export default function Home() {
 
           {view === "briefing" && (
             <>
-              <MarketWorld
-                symbols={watchlist}
+              <MobileDesk
                 markets={allMarkets}
+                symbols={watchlist}
+                signals={settings.market ? marketAlerts.length : 0}
+                saved={saved.length}
                 onResearch={openResearch}
-                onCompare={() => go("compare")}
-                onExport={exportBrief}
+                onSearch={() => setSearchOpen(true)}
+                onGo={go}
               />
+              <button
+                className="mobile-world-toggle"
+                aria-expanded={worldOpen}
+                aria-controls="market-world-scene"
+                onClick={() => setWorldOpen(!worldOpen)}
+              >
+                <Layers size={18} />
+                <span>
+                  Explore Market City
+                  <small>An interactive view of your companies</small>
+                </span>
+                <ChevronDown size={17} />
+              </button>
+              <div
+                id="market-world-scene"
+                className={
+                  "world-container " + (worldOpen ? "mobile-expanded" : "")
+                }
+              >
+                <MarketWorld
+                  symbols={watchlist}
+                  markets={allMarkets}
+                  onResearch={openResearch}
+                  onCompare={() => go("compare")}
+                  onExport={exportBrief}
+                />
+              </div>
               <div className="context-strip">
                 <span>
                   <span className="tiny-dot" />
@@ -1310,7 +1422,7 @@ export default function Home() {
                         onChange={(e) => setDays(Number(e.target.value))}
                       >
                         <option value={0}>Historical examples</option>
-                        <option value={1}>Last 24 hours</option>
+                        <option value={1}>Today (IST)</option>
                         <option value={7}>Last 7 days</option>
                         <option value={30}>Last 30 days</option>
                         <option value={365}>Last 12 months</option>
@@ -1417,16 +1529,21 @@ export default function Home() {
                           >
                             {f.title}
                           </button>
-                          <p>{f.summary}</p>
-                          {i === 0 && (
-                            <div className="why-box">
-                              <Sparkles size={14} />
-                              <div>
-                                <strong>Why it matters</strong>
-                                <p>{f.why}</p>
+                          <details className="filing-explainer">
+                            <summary>
+                              Quick take <ChevronDown size={14} />
+                            </summary>
+                            <p>{f.summary}</p>
+                            {i === 0 && (
+                              <div className="why-box">
+                                <Sparkles size={14} />
+                                <div>
+                                  <strong>Why it matters</strong>
+                                  <p>{f.why}</p>
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
+                          </details>
                           <div className="filing-footer">
                             <SourceLink id={f.source} compact />
                             <button
@@ -1950,6 +2067,45 @@ export default function Home() {
                   )}
                 </div>
               </section>
+              <nav
+                className="research-jumps"
+                aria-label="Jump to company information"
+              >
+                {[
+                  {
+                    id: "company-overview",
+                    label: "Chart",
+                    Icon: ChartNoAxesCombined,
+                  },
+                  { id: "company-reports", label: "Reports", Icon: FileText },
+                  { id: "company-analysis", label: "Facts", Icon: BookOpen },
+                  {
+                    id: "research-question",
+                    label: "Ask FINN",
+                    Icon: Sparkles,
+                  },
+                ].map(({ id, label, Icon }) => (
+                  <button
+                    key={id}
+                    onClick={() => {
+                      const target = document.getElementById(id);
+                      if (target instanceof HTMLDetailsElement)
+                        target.open = true;
+                      target?.scrollIntoView({
+                        behavior: window.matchMedia(
+                          "(prefers-reduced-motion: reduce)",
+                        ).matches
+                          ? "auto"
+                          : "smooth",
+                        block: "start",
+                      });
+                    }}
+                  >
+                    <Icon size={17} />
+                    {label}
+                  </button>
+                ))}
+              </nav>
               <CompanyWorkspace
                 key={researchSymbol}
                 symbol={researchSymbol}
@@ -2235,26 +2391,36 @@ export default function Home() {
                       </p>
                     </section>
                   )}
-                  <section className="panel ask-panel">
+                  <section className="panel ask-panel" id="research-question">
                     <div className="section-header">
                       <div className="section-title">
                         <Sparkles size={19} />
-                        <h2>Ask a better question.</h2>
+                        <h2>Ask FINN</h2>
                       </div>
                       <Badge tone="neutral">Evidence grounded</Badge>
                     </div>
                     <div className="question-chips">
                       {[
-                        "What do these sources say about margins?",
-                        "Where do management’s story and the numbers differ?",
-                        "What evidence is missing?",
+                        {
+                          label: "Margins",
+                          question: "What do these sources say about margins?",
+                        },
+                        {
+                          label: "Promises vs. results",
+                          question:
+                            "Where do management’s story and the numbers differ?",
+                        },
+                        {
+                          label: "Evidence gaps",
+                          question: "What evidence is missing?",
+                        },
                       ].map((q) => (
                         <button
-                          key={q}
-                          onClick={() => ask(q)}
+                          key={q.label}
+                          onClick={() => ask(q.question)}
                           disabled={asking}
                         >
-                          {q}
+                          {q.label}
                           <ArrowUpRight size={12} />
                         </button>
                       ))}
@@ -2304,6 +2470,7 @@ export default function Home() {
                           Document name
                           <input
                             value={documentName}
+                            maxLength={100}
                             onChange={(e) => setDocumentName(e.target.value)}
                             placeholder="Annual report FY2026, pages 20–22"
                           />
@@ -2313,9 +2480,10 @@ export default function Home() {
                           <textarea
                             aria-label="Primary-source extract"
                             value={extract}
-                            onChange={(e) =>
-                              setExtract(e.target.value.slice(0, 50000))
-                            }
+                            onChange={(e) => {
+                              uploadRequest.current.cancel();
+                              setExtract(e.target.value.slice(0, 50000));
+                            }}
                             placeholder="Paste text from an annual report or earnings-call transcript. Include the period, units and page references."
                           />
                         </label>
@@ -2345,6 +2513,15 @@ export default function Home() {
                             Checking relevant sources and keeping the answer
                             focused.
                           </p>
+                          <button
+                            className="text-button"
+                            onClick={() => {
+                              researchRequest.current.cancel();
+                              setAsking(false);
+                            }}
+                          >
+                            Cancel research
+                          </button>
                         </div>
                       </div>
                     )}
@@ -2372,6 +2549,11 @@ export default function Home() {
                           )}
                         </div>
                         <div className="answer-copy">{answer.answer}</div>
+                        {answer.loginRequired && (
+                          <a className="button primary" href="/login">
+                            Sign in with Google <ArrowUpRight size={14} />
+                          </a>
+                        )}
                         {answer.mode !== "error" &&
                           answer.mode !== "needs-sources" && (
                             <button

@@ -1,13 +1,27 @@
-import { validCompanySymbol } from "@/lib/company-directory";
 import { runtimeValue } from "@/lib/runtime-env";
 import { authConfigured, currentUser } from "@/lib/auth";
+import { sameOrigin } from "@/lib/auth-core";
 import { evidence } from "@/lib/finn-data";
-import { discoverDocuments, safePrimaryUrl } from "@/lib/discovery";
-const resultCache = new Map<string, { time: number; value: any }>();
+import {
+  discoverDocuments,
+  safePrimaryUrl,
+  type DiscoveredDocument,
+} from "@/lib/discovery";
+import {
+  researchInput,
+  checkedAnswer,
+  boundedBytes,
+} from "@/lib/research-validation";
+export const maxDuration = 90;
+const resultCache = new Map<
+  string,
+  { time: number; value: Record<string, unknown> }
+>();
 const requestBuckets = new Map<string, { start: number; count: number }>();
 export async function POST(request: Request) {
   try {
-    if (authConfigured() && !(await currentUser(request)))
+    const user = await currentUser(request);
+    if (authConfigured() && !user)
       return Response.json(
         {
           error: "Please sign in with Google to use live AI research.",
@@ -15,28 +29,35 @@ export async function POST(request: Request) {
         },
         { status: 401 },
       );
-    const body = (await request.json()) as {
-      symbol: string;
-      question: string;
-      extract?: string;
-      documentName?: string;
-    };
-    const symbol = (body.symbol || "").toUpperCase();
-    const question = (body.question || "").trim();
-    if (
-      !validCompanySymbol(symbol) ||
-      !question ||
-      question.length > 1500 ||
-      (body.extract?.length || 0) > 50000
-    )
+    if (!sameOrigin(request))
+      return Response.json(
+        { error: "Research must start from FINN." },
+        { status: 403 },
+      );
+    let raw: unknown;
+    try {
+      raw = JSON.parse(
+        new TextDecoder().decode(await boundedBytes(request.body, 350000)),
+      );
+    } catch {
       return Response.json(
         {
           error:
-            "Use a valid company ticker, a question under 1,500 characters, and an extract under 50,000 characters.",
+            "Send a valid research request with a text extract under 50,000 characters.",
         },
         { status: 400 },
       );
-    const supplied = body.extract?.trim();
+    }
+    const body = researchInput(raw);
+    if (!body)
+      return Response.json(
+        {
+          error:
+            "Use a valid company ticker, a question under 1,500 characters, an extract under 50,000 characters, and a document name under 100 characters.",
+        },
+        { status: 400 },
+      );
+    const { symbol, question, extract: supplied } = body;
     const sources = evidence.filter(
       (e) =>
         e.symbol === symbol &&
@@ -50,18 +71,24 @@ export async function POST(request: Request) {
     );
     const key = runtimeValue("GEMINI_API_KEY");
     const model = runtimeValue("GEMINI_MODEL") || "gemini-3.5-flash-lite";
-    const cacheKey = JSON.stringify([symbol, question, supplied || "", model]);
+    const identity = user ? "google:" + user.id : "sample";
+    const cacheKey = JSON.stringify([
+      identity,
+      symbol,
+      question,
+      supplied,
+      body.documentName,
+      model,
+    ]);
     const cached = resultCache.get(cacheKey);
     if (cached && Date.now() - cached.time < 3600000)
       return Response.json({ ...cached.value, cached: true });
-    const identity =
-      request.headers.get("oai-authenticated-user-id") ||
-      request.headers.get("cf-connecting-ip") ||
-      "local";
     const now = Date.now();
     let bucket = requestBuckets.get(identity);
     if (!bucket || now - bucket.start > 60000) {
       bucket = { start: now, count: 0 };
+      if (requestBuckets.size >= 1000)
+        requestBuckets.delete(requestBuckets.keys().next().value!);
       requestBuckets.set(identity, bucket);
     }
     if (++bucket.count > 8)
@@ -89,8 +116,11 @@ export async function POST(request: Request) {
         locator: "Supplied text; document provenance is user-provided",
         facts: supplied,
       });
-    const parts: any[] = [];
-    let discovered: any[] = [];
+    const parts: (
+      | { text: string }
+      | { inline_data: { mime_type: string; data: string } }
+    )[] = [];
+    let discovered: DiscoveredDocument[] = [];
     if (!sources.length && !supplied && key) {
       const found = await discoverDocuments(symbol);
       discovered = found.documents;
@@ -119,8 +149,9 @@ export async function POST(request: Request) {
             new URL(doc.url).hostname === "www.sec.gov" &&
             doc.url.startsWith("https://www.sec.gov/Archives/edgar/data/")
           ) {
-            const html = await r.text();
-            if (html.length > 6000000) continue;
+            const html = new TextDecoder().decode(
+              await boundedBytes(r.body, 6000000),
+            );
             const text = html
               .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
               .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ")
@@ -141,7 +172,7 @@ export async function POST(request: Request) {
             });
             continue;
           }
-          const bytes = new Uint8Array(await r.arrayBuffer());
+          const bytes = await boundedBytes(r.body, 6000000);
           if (
             bytes.length > 6000000 ||
             new TextDecoder().decode(bytes.slice(0, 4)) !== "%PDF"
@@ -242,13 +273,17 @@ export async function POST(request: Request) {
         { status: status === 429 ? 429 : 502 },
       );
     }
-    const data = (await response.json()) as any;
+    const data = (await response.json()) as {
+      candidates?: {
+        content?: { parts?: { thought?: boolean; text?: string }[] };
+      }[];
+    };
     const text =
       data.candidates?.[0]?.content?.parts
-        ?.filter((p: any) => !p.thought && p.text)
-        .map((p: any) => p.text)
+        ?.filter((p) => !p.thought && p.text)
+        .map((p) => p.text)
         .join("") || "";
-    let parsed: any;
+    let parsed: unknown;
     try {
       parsed = JSON.parse(text.replace(/^```json\s*|\s*```$/g, ""));
     } catch {
@@ -257,34 +292,8 @@ export async function POST(request: Request) {
         { status: 502 },
       );
     }
-    const citations = (Array.isArray(parsed.citations) ? parsed.citations : [])
-      .map((c: any) => {
-        const s = sourceList.find((s) => s.id === c.id);
-        return s
-          ? {
-              id: s.id,
-              title: s.title,
-              url: s.url,
-              locator: s.facts ? s.locator : String(c.locator || s.locator),
-            }
-          : null;
-      })
-      .filter(Boolean);
-    if (typeof parsed.answer !== "string" || !parsed.answer.trim())
-      return Response.json(
-        { error: "The model did not return a usable answer." },
-        { status: 502 },
-      );
-    const unknownIds = [...parsed.answer.matchAll(/\[([A-Z0-9-]+)\]/g)].some(
-      (m: any) => !sourceList.some((s) => s.id === m[1]),
-    );
-    if (
-      unknownIds ||
-      (!citations.length &&
-        !/insufficient|not (available|establish|disclosed)|cannot|missing/i.test(
-          parsed.answer,
-        ))
-    )
+    const checked = checkedAnswer(parsed, sourceList);
+    if (!checked)
       return Response.json(
         {
           error:
@@ -294,9 +303,7 @@ export async function POST(request: Request) {
       );
     const result = {
       mode: "gemini",
-      answer: parsed.answer,
-      citations,
-      limitations: String(parsed.limitations || ""),
+      ...checked,
       model,
       notice:
         "AI-assisted analysis of supplied evidence. Open citations to verify the interpretation.",

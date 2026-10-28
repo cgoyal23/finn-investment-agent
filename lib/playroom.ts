@@ -401,7 +401,7 @@ export function recordGame(stats: PlayStats, run: GameRecord): PlayStats {
 }
 export function restoreStats(raw: unknown): PlayStats {
   if (!raw || typeof raw !== "object") return emptyStats();
-  const value = raw as any,
+  const value = raw as Record<string, unknown>,
     safe = emptyStats();
   for (const key of [
     "totalRuns",
@@ -409,7 +409,12 @@ export function restoreStats(raw: unknown): PlayStats {
     "streak",
     "bestStreak",
   ] as const)
-    if (Number.isSafeInteger(value[key]) && value[key] >= 0 && value[key] < 1e9)
+    if (
+      typeof value[key] === "number" &&
+      Number.isSafeInteger(value[key]) &&
+      value[key] >= 0 &&
+      value[key] < 1e9
+    )
       safe[key] = value[key];
   if (
     typeof value.lastDailyDay === "string" &&
@@ -433,20 +438,28 @@ export function restoreStats(raw: unknown): PlayStats {
         safe.best[key] = Number(score);
   if (Array.isArray(value.runs))
     safe.runs = value.runs
-      .filter(
-        (r: any) =>
-          r &&
+      .filter((entry: unknown): entry is GameRecord => {
+        if (!entry || typeof entry !== "object") return false;
+        const r = entry as Record<string, unknown>;
+        return (
           typeof r.id === "string" &&
+          typeof r.game === "string" &&
           ["sprint", "returns", "detective", "daily"].includes(r.game) &&
+          typeof r.level === "string" &&
           ["starter", "stretch"].includes(r.level) &&
           typeof r.timed === "boolean" &&
+          typeof r.day === "string" &&
           /^\d{4}-\d{2}-\d{2}$/.test(r.day) &&
           ["score", "correct", "answered", "total"].every(
-            (k) => Number.isSafeInteger(r[k]) && r[k] >= 0,
+            (k) =>
+              typeof r[k] === "number" &&
+              Number.isSafeInteger(r[k]) &&
+              r[k] >= 0,
           ) &&
-          r.correct <= r.answered &&
-          r.answered <= r.total,
-      )
+          Number(r.correct) <= Number(r.answered) &&
+          Number(r.answered) <= Number(r.total)
+        );
+      })
       .slice(0, 20);
   return safe;
 }

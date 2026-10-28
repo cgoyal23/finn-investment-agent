@@ -14,7 +14,7 @@ A mobile-first investment research desk built for the ENAM AI Engineer Build Cha
 2. In **Portfolio**, choose a company and explore 1M / 3M / 6M / 1Y daily closing prices, volume, and dated filing markers.
 3. In **Research → Promises vs. results**, compare original Infosys FY2026 guidance with full-year delivery.
 4. Ask **“Compare original FY2026 guidance with actual delivery. What is missing?”** The server calls Gemini using primary-source evidence and returns source links and limitations.
-5. Enter a different NSE ticker. Discover company documents, or paste a primary-source text extract and ask a question. There is no prewritten answer for an unknown company.
+5. Search a listed company by name or exchange-qualified ticker, including international listings. Discover company documents, or paste a primary-source text extract and ask a question. There is no prewritten answer for an unknown company.
 6. Add an investment reason in **Thesis watch** and adjust **Alerts**. These preferences persist in this browser.
 
 See [Demo guide](docs/DEMO_GUIDE.md), [Architecture](docs/ARCHITECTURE.md), [Verification](docs/VERIFICATION.md), [Build history](docs/BUILD_HISTORY.md), and [Submission checklist](docs/SUBMISSION.md).
@@ -23,15 +23,15 @@ See [Demo guide](docs/DEMO_GUIDE.md), [Architecture](docs/ARCHITECTURE.md), [Ver
 
 | Component | Current behavior |
 | --- | --- |
-| Market charts | Real Yahoo Finance daily prices and volumes for 18 NSE companies. Saved data ends 26 October 2026, with approximately one year per company. On-demand refresh calls Yahoo again. |
+| Market charts | Real Yahoo Finance daily prices and volumes for 18 NSE companies. Saved data ends 28 October 2026, with approximately one year per company. On-demand refresh calls Yahoo again. |
 | Filing briefing | Selected real historical disclosures from April 2025 to April 2026. No continuous NSE/BSE feed is enabled. Source dates are preserved, so recent-window filters can correctly be empty. |
-| Research examples | Four curated historical reviews: Infosys, TCS, Reliance, ITC. Source coverage is intentionally uneven and visible. |
+| Research examples | Four curated historical reviews: Infosys, TCS, Reliance, ITC. Source coverage is intentionally uneven and visible; Samsung also has a saved primary-source extract. |
 | Live AI | Gemini API, called server-side when configured. No secret is sent to the client. Known-company questions use curated fact records linked to primary documents; new tickers can use discovered annual-report/transcript PDFs or supplied text. |
 | Citation checking | Returned IDs must belong to supplied documents. This checks source membership, not full semantic entailment. Users should inspect the original. |
 | Guidance comparison | One verified original-guidance-versus-full-year-delivery pair. This is not a complete four-quarter tracker and does not measure delivery against intervening revisions. |
 | Alerts | Deterministic in-app threshold evaluation on latest EOD records. No background polling, email, phone push, or real-time trading prices. |
 | Thesis watch | Company + user-defined keyword matching to historical disclosures. No automatic verdict on whether an investment thesis is true. |
-| Persistence | Watchlist, saved insights, notes and alert settings use localStorage. Research and price-refresh caches are bounded, best-effort in-memory server caches. No account sync or durable server database. |
+| Persistence | Watchlist, saved insights, notes, review baselines, game progress and alert settings use localStorage. Research and price-refresh caches are bounded, best-effort in-memory server caches. No account sync or durable server database. |
 
 ## Run locally
 
@@ -50,9 +50,12 @@ Open the local address printed by the development server, usually `http://127.0.
 ```sh
 npm test
 npm run typecheck
-npm run build
-# With the dev server running and Gemini configured:
+npm run lint
+npm run build -- --webpack
+# With the dev server running:
 npm run test:api
+# Broad public endpoint/provider audit (Google configuration required):
+npm run test:audit
 ```
 
 The app also supports saved research, the market snapshot and extractive evidence search without a Gemini key. New document analysis requires an accessible primary source and configured model access.
@@ -72,7 +75,7 @@ Use a model your Google project can access; model availability and free quotas c
 
 ## Second prototype features
 
-Compare up to four companies on a common baseline; save research and its evidence into a searchable notebook; inspect company-event timelines; learn financial terms using plain-English examples; and explore a margin calculator. The Google sign-in screen uses Google Identity Services, not a simulated email-code flow. The owner’s Client ID is required to activate it. See [Google setup](docs/GOOGLE_SIGN_IN_SETUP.md) and [Second prototype release notes](docs/RELEASE_V2.md).
+Compare up to four companies on a common baseline; save research and its evidence into a searchable notebook; inspect company-event timelines; learn financial terms using plain-English examples; and explore a margin calculator. The Google sign-in screen uses Google Identity Services, not a simulated email-code flow. The production Client ID is configured; local environments need their own allowed origin. See [Google setup](docs/GOOGLE_SIGN_IN_SETUP.md) and [Second prototype release notes](docs/RELEASE_V2.md).
 
 ## Platform and portability
 
@@ -127,3 +130,7 @@ The opening experience now includes three switchable views: **Market City**, **S
 ### FINN Playroom
 
 Open **Play & learn** or `/#arcade` for original Number Sprint, Returns Rally and Evidence Detective games, plus an eight-question Daily Mix seeded by the India calendar day. Number Sprint offers 60-second and untimed modes. Explanations, personal bests, practice streaks, milestones, bounded recent history and a copyable score card are included. Fictional examples and local points are used; no extra API or third-party subscription is required. Progress is scoped to the current browser/account workspace and does not sync between devices. See [Playroom release notes](docs/RELEASE_V5.md).
+
+## Full audit
+
+See [the current QA report](docs/QA_AUDIT.md) for the feature-by-feature browser checks, regression tests, provider limitations and release verification. `npm test` currently runs 57 tests; `npm run lint` and `npm run typecheck` pass. Both runtime and snapshot refresh exclude unfinished sessions. Research cancellation, account-scoped caching, login challenge reuse and malformed saved-data restoration have regression coverage.

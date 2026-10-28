@@ -1,14 +1,39 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
   ArrowUpRight,
   Check,
-  FileText,
   ChartNoAxesCombined,
   ShieldCheck,
   LoaderCircle,
 } from "lucide-react";
+type GoogleWindow = Window & {
+  google?: {
+    accounts: {
+      id: {
+        initialize: (options: {
+          client_id: string;
+          nonce: string | null;
+          auto_select: boolean;
+          callback: (response: { credential: string }) => Promise<void>;
+        }) => void;
+        renderButton: (
+          target: HTMLElement,
+          options: {
+            theme: string;
+            size: string;
+            shape: string;
+            text: string;
+            width: number;
+            logo_alignment: string;
+          },
+        ) => void;
+      };
+    };
+  };
+};
 type AuthConfig = {
   configured: boolean;
   clientId: string | null;
@@ -23,15 +48,25 @@ export default function Login() {
   const target = useRef<HTMLDivElement>(null);
   const [sdkLoaded, setSdkLoaded] = useState(false);
   useEffect(() => {
-    fetch("/api/auth")
-      .then((r) => r.json())
-      .then((d: any) => {
+    const controller = new AbortController();
+    fetch("/api/auth?challenge=1", {
+      signal: AbortSignal.any([controller.signal, AbortSignal.timeout(15000)]),
+    })
+      .then((r) => {
+        if (!r.ok) throw Error();
+        return r.json();
+      })
+      .then((raw) => {
+        const d = raw as AuthConfig;
+        if (controller.signal.aborted) return;
         setConfig(d);
         if (d.user) location.replace("/");
       })
-      .catch(() =>
-        setError("Unable to load sign-in settings. Please refresh."),
-      );
+      .catch(() => {
+        if (!controller.signal.aborted)
+          setError("Unable to load sign-in settings. Please refresh.");
+      });
+    return () => controller.abort();
   }, []);
   useEffect(() => {
     if (!config?.configured) return;
@@ -39,7 +74,9 @@ export default function Login() {
       "finn-google-sdk",
     ) as HTMLScriptElement | null;
     if (existing) {
-      if ((window as any).google?.accounts?.id) setSdkLoaded(true);
+      // The SDK can already exist after client navigation; synchronise that external state.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      if ((window as GoogleWindow).google?.accounts?.id) setSdkLoaded(true);
       else
         existing.addEventListener("load", () => setSdkLoaded(true), {
           once: true,
@@ -59,7 +96,8 @@ export default function Login() {
   }, [config?.configured]);
   useEffect(() => {
     if (!sdkLoaded || !config?.clientId || !target.current) return;
-    const google = (window as any).google;
+    const google = (window as GoogleWindow).google;
+    if (!google) return;
     google.accounts.id.initialize({
       client_id: config.clientId,
       nonce: config.nonce,
@@ -70,13 +108,14 @@ export default function Login() {
         try {
           const r = await fetch("/api/auth/google", {
             method: "POST",
+            signal: AbortSignal.timeout(20000),
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               credential: response.credential,
               csrfToken: config.csrfToken,
             }),
           });
-          const data: any = await r.json();
+          const data = (await r.json()) as { error?: string };
           if (!r.ok) throw Error(data.error || "Sign-in failed.");
           location.replace("/");
         } catch (e) {
@@ -96,9 +135,9 @@ export default function Login() {
   }, [sdkLoaded, config]);
   return (
     <div className="login-page">
-      <a className="login-wordmark" href="/">
+      <Link className="login-wordmark" href="/">
         finn<span>.</span>
-      </a>
+      </Link>
       <main className="login-layout">
         <section className="login-story">
           <div className="eyebrow">
@@ -199,9 +238,9 @@ export default function Login() {
               {error}
             </p>
           )}
-          <a className="login-demo-link" href="/">
+          <Link className="login-demo-link" href="/">
             Explore the sample desk <ArrowRight size={14} />
-          </a>
+          </Link>
           <div className="login-privacy">
             <ShieldCheck size={14} />
             <span>
@@ -210,17 +249,17 @@ export default function Login() {
             </span>
           </div>
           <div className="login-legal">
-            <a href="/privacy">Privacy</a>
+            <Link href="/privacy">Privacy</Link>
             <span>·</span>
-            <a href="/terms">About this prototype</a>
+            <Link href="/terms">About this prototype</Link>
           </div>
         </section>
       </main>
       <footer className="login-footer">
         <span>FINN · Evidence before opinion.</span>
-        <a href="/">
+        <Link href="/">
           Back to the desk <ArrowUpRight size={12} />
-        </a>
+        </Link>
       </footer>
     </div>
   );

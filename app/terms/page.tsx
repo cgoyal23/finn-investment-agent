@@ -1,9 +1,10 @@
+import Link from "next/link";
 export default function Terms() {
   return (
     <main className="legal-page">
-      <a href="/" className="login-wordmark">
+      <Link href="/" className="login-wordmark">
         finn<span>.</span>
-      </a>
+      </Link>
       <h1>A research prototype, with clear limits.</h1>
       <p>
         FINN helps explore public company documents and historical market data.
@@ -28,9 +29,9 @@ export default function Terms() {
         sample desk remains available without pretending a visitor is signed in.
         Third-party providers may impose limits or become unavailable.
       </p>
-      <a className="button primary" href="/">
+      <Link className="button primary" href="/">
         Explore FINN
-      </a>
+      </Link>
     </main>
   );
 }

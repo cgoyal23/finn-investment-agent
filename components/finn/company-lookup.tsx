@@ -15,40 +15,53 @@ export function CompanyLookup({
 }) {
   const [input, setInput] = useState("");
   const value = query ?? input;
-  const [results, setResults] = useState<CompanyIdentity[]>([]),
-    [busy, setBusy] = useState(false),
-    [warning, setWarning] = useState("");
+  const [response, setResponse] = useState<{
+    query: string;
+    results: CompanyIdentity[];
+    warning: string;
+  } | null>(null);
+  const hasQuery = value.trim().length >= 2;
+  const current = hasQuery && response?.query === value ? response : null;
+  const results = current?.results || [];
+  const warning = current?.warning || "";
+  const busy = hasQuery && !current;
   useEffect(() => {
-    setResults([]);
-    setWarning("");
-    if (value.trim().length < 2) {
-      setBusy(false);
-      return;
-    }
-    setBusy(true);
+    if (value.trim().length < 2) return;
     const controller = new AbortController();
     const timer = setTimeout(async () => {
-      setBusy(true);
       try {
         const r = await fetch(
           "/api/companies?q=" + encodeURIComponent(value.trim()),
-          { signal: controller.signal },
+          {
+            signal: AbortSignal.any([
+              controller.signal,
+              AbortSignal.timeout(10000),
+            ]),
+          },
         );
-        const d: any = await r.json();
+        const d = (await r.json()) as {
+          results?: CompanyIdentity[];
+          error?: string;
+          warning?: string;
+        };
         if (!r.ok) throw Error(d.error);
         if (!controller.signal.aborted) {
-          setResults(d.results || []);
-          setWarning(d.warning || "");
+          setResponse({
+            query: value,
+            results: d.results || [],
+            warning: d.warning || "",
+          });
         }
       } catch (e) {
         if (!controller.signal.aborted)
-          setWarning(
-            e instanceof Error
-              ? e.message
-              : "Company search is unavailable. Please retry.",
-          );
-      } finally {
-        if (!controller.signal.aborted) setBusy(false);
+          setResponse({
+            query: value,
+            results: [],
+            warning:
+              e instanceof Error
+                ? e.message
+                : "Company search is unavailable. Please retry.",
+          });
       }
     }, 350);
     return () => {
@@ -93,8 +106,9 @@ export function CompanyLookup({
               key={c.symbol}
               onClick={() => {
                 onSelect(c);
+                onQuery?.("");
                 setInput("");
-                setResults([]);
+                setResponse(null);
               }}
             >
               <span className="lookup-initial">{c.name[0]}</span>

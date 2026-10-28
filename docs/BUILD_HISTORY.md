@@ -87,3 +87,14 @@ User asked to integrate TraderMath or a finance game to engage visitors. Reviewe
 Added unit coverage for randomized arithmetic and distinct answer options, including fixing ambiguous zero-return distractors. Daily cases are deterministic by India day and evidence rounds avoid repeated cases. Empty and duplicate records do not inflate progress, and daily completion survives bounded history. Added mobile Play navigation, hash-link updates and account-scoped local storage.
 
 Chrome lobby screenshot and answer/score feedback were checked. Browser access subsequently returned invalid-window/no-window errors despite user coordination and reconnect attempts; full-round/timer/mobile browser checks remain incomplete for this release. Automated validation is reported separately.
+
+
+## 28 October 2026 — full feature audit
+
+User requested testing every feature and correcting failures. Added regression coverage and fixed stale research/file/document responses after company switching, saved-answer metadata, malformed workspace data, incomplete daily bars and exchange date handling, newer price-cache preservation, research validation and account-specific quotas/caches, Google challenge rotation, source-title entities, notebook follow-up reset, chart edge cases and sign-out failure feedback. Runtime and snapshot refresh now share the same EOD parser. All existing lint errors were resolved, with narrowly documented exceptions for synchronising external browser storage/SDK state after hydration.
+
+Automated checks and actual Chrome interactions are recorded separately in `QA_AUDIT.md`. External SEC access remains limited; the app reports it. No submission email was sent and no credentials were added to source.
+
+## 29 October 2026 — mobile reading hierarchy
+
+User prioritised a phone-friendly app with less embedded prose. Added a compact real-data phone dashboard, watchlist direction bar, swipeable price sparklines and icon shortcuts. Market City is optional on mobile; reports, facts and quick takes expand on demand. Research jump actions expose charts, reports, facts and the question form. Reduced game headings and copy, preserved accessible controls and safe-area navigation. Automated checks passed; the final mobile visual follow-up is pending because the user is using Chrome and the available native controls share its foreground window. See `QA_AUDIT.md` for precise coverage.

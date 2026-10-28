@@ -105,3 +105,35 @@ test("cross-origin sign-in and sign-out requests are rejected", () => {
     false,
   );
 });
+test("same-origin validation uses the destination Host while ignoring spoofed forwarding headers", () => {
+  assert.equal(
+    auth.sameOrigin(
+      new Request("http://localhost:3006/api/auth", {
+        headers: { host: "127.0.0.1:3006", origin: "http://127.0.0.1:3006" },
+      }),
+    ),
+    true,
+  );
+  assert.equal(
+    auth.sameOrigin(
+      new Request("https://finn.example/api/auth", {
+        headers: {
+          host: "finn.example",
+          origin: "https://evil.example",
+          "x-forwarded-host": "evil.example",
+        },
+      }),
+    ),
+    false,
+  );
+});
+test("login challenge reuse rejects malformed tokens and session tokens", async () => {
+  const c = await auth.createChallenge(secret);
+  assert.deepEqual(await auth.reusableChallenge(c.token, secret), c);
+  assert.equal(await auth.reusableChallenge(c.token + "bad", secret), null);
+  const session = await auth.createSession(
+    { id: "abc", name: "Test", email: "test@example.invalid" },
+    secret,
+  );
+  assert.equal(await auth.reusableChallenge(session, secret), null);
+});

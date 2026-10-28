@@ -3,6 +3,7 @@ import "./globals.css";
 import "./finance-theme.css";
 import "./market-world.css";
 import "./playroom.css";
+import "./mobile-first.css";
 export const metadata: Metadata = {
   title: "FINN — Your investment attention, focused",
   description:

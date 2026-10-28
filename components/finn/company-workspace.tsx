@@ -6,6 +6,7 @@ import {
   RefreshCw,
   LoaderCircle,
   Activity,
+  ChevronDown,
 } from "lucide-react";
 import {
   marketStats,
@@ -65,17 +66,16 @@ export function CompanyWorkspace({
     [sourceError, setSourceError] = useState("");
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
-    setPriceError("");
-    setSourceError("");
-    setData(null);
-    setSeries(initial);
+    const signal = AbortSignal.any([
+      controller.signal,
+      AbortSignal.timeout(25000),
+    ]);
     const prices = fetch(
       `/api/market?symbol=${encodeURIComponent(symbol)}${refresh ? "&refresh=1" : ""}`,
-      { signal: controller.signal },
+      { signal },
     )
       .then(async (r) => {
-        const d: any = await r.json();
+        const d = (await r.json()) as MarketSeries & { error?: string };
         if (!r.ok || !d.points?.length)
           throw Error(d.error || "No prices returned.");
         if (!controller.signal.aborted) setSeries(d);
@@ -87,10 +87,10 @@ export function CompanyWorkspace({
           );
       });
     const sources = fetch("/api/company?symbol=" + encodeURIComponent(symbol), {
-      signal: controller.signal,
+      signal,
     })
       .then(async (r) => {
-        const d: any = await r.json();
+        const d = (await r.json()) as CompanyData & { error?: string };
         if (!r.ok) throw Error(d.error);
         if (!controller.signal.aborted) setData(d);
       })
@@ -122,7 +122,12 @@ export function CompanyWorkspace({
           <button
             className="button secondary"
             disabled={loading}
-            onClick={() => setRefresh((v) => v + 1)}
+            onClick={() => {
+              setLoading(true);
+              setPriceError("");
+              setSourceError("");
+              setRefresh((v) => v + 1);
+            }}
           >
             <RefreshCw size={13} className={loading ? "spinning" : ""} />
             Refresh
@@ -141,9 +146,9 @@ export function CompanyWorkspace({
               {series.points.at(-1)?.date}
               <ArrowUpRight size={12} />
             </a>
-            {series.warning && (
+            {(series.warning || series.notice) && (
               <p role="status" className="company-data-warning">
-                {series.warning}
+                {series.warning || series.notice}
               </p>
             )}
             <div className="company-observations">
@@ -152,24 +157,18 @@ export function CompanyWorkspace({
                 <strong>
                   {change === null
                     ? "Insufficient history"
-                    : `${change >= 0 ? "+" : ""}${change.toFixed(2)}% over ${points.length} sessions`}
+                    : `${change >= 0 ? "+" : ""}${change.toFixed(2)}%`}
                 </strong>
-                <p>
-                  Calculated from unadjusted closing prices in the selected
-                  period.
-                </p>
+                <p>Price return · {points.length} sessions</p>
               </div>
               <div>
                 <Activity size={16} />
                 <strong>
                   {stats?.volumeRatio == null
                     ? "Volume comparison unavailable"
-                    : `${stats.volumeRatio.toFixed(2)}× recent average volume`}
+                    : `${stats.volumeRatio.toFixed(2)}×`}
                 </strong>
-                <p>
-                  Latest session compared with the previous 20 sessions,
-                  excluding the latest.
-                </p>
+                <p>Volume vs. previous 20 sessions</p>
               </div>
             </div>
           </>
@@ -196,106 +195,133 @@ export function CompanyWorkspace({
             Refresh failed. Retaining the dated prices above.
           </p>
         )}
-        <p className="company-analysis-note">
-          Price observations describe historical trading, not why it moved.
-          Splits and dividends can affect unadjusted prices.{" "}
-          {identity?.exchange || "Check the selected exchange"} · no currency
-          conversion applied.
-        </p>
+        <details className="data-explainer">
+          <summary>
+            How to read these numbers <ChevronDown size={13} />
+          </summary>
+          <p className="company-analysis-note">
+            Price observations describe historical trading, not why it moved.
+            Splits and dividends can affect unadjusted prices.{" "}
+            {identity?.exchange || "Check the selected exchange"} · no currency
+            conversion applied. Volume excludes the latest session from its
+            comparison average.
+          </p>
+        </details>
       </section>
       <div className="company-evidence-grid">
-        <section className="panel">
-          <div className="section-header">
-            <h2>Reports & announcements</h2>
-            <FileText size={17} />
-          </div>
-          {data?.announcements.slice(0, 4).map((a, i) => (
-            <a
-              className="company-announcement"
-              key={a.url + a.title + i}
-              href={a.url}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <div>
-                <span>{a.kind}</span>
-                <time>{a.date}</time>
-              </div>
-              <strong>
-                {a.title}
+        <details className="panel research-disclosure" id="company-reports">
+          <summary>
+            <span>
+              <FileText size={19} />
+              <strong>Reports & announcements</strong>
+            </span>
+            <span className="disclosure-count">
+              {loading ? "Loading…" : data?.documents.length || 0}
+              <ChevronDown size={17} />
+            </span>
+          </summary>
+          <div className="disclosure-content">
+            {data?.announcements.slice(0, 4).map((a, i) => (
+              <a
+                className="company-announcement"
+                key={a.url + a.title + i}
+                href={a.url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <div>
+                  <span>{a.kind}</span>
+                  <time>{a.date}</time>
+                </div>
+                <strong>
+                  {a.title}
+                  <ArrowUpRight size={13} />
+                </strong>
+                <p>{a.summary}</p>
+              </a>
+            ))}
+            {!data?.announcements.length && (
+              <p className="company-analysis-note">
+                {loading
+                  ? "Finding company disclosures…"
+                  : "No dated announcements were verified by the connected source. This does not mean the company has made no announcements."}
+              </p>
+            )}
+            {data?.documents.slice(0, 5).map((d) => (
+              <a
+                className="company-document"
+                key={d.id}
+                href={d.url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <FileText size={14} />
+                <span>
+                  {d.title}
+                  <small>
+                    {d.kind}
+                    {d.date ? " · " + d.date : ""}
+                  </small>
+                </span>
                 <ArrowUpRight size={13} />
-              </strong>
-              <p>{a.summary}</p>
-            </a>
-          ))}
-          {!data?.announcements.length && (
+              </a>
+            ))}
             <p className="company-analysis-note">
-              {loading
-                ? "Finding company disclosures…"
-                : "No dated announcements were verified by the connected source. This does not mean the company has made no announcements."}
+              {sourceError || data?.warning || data?.notice}
             </p>
-          )}
-          {data?.documents.slice(0, 5).map((d) => (
-            <a
-              className="company-document"
-              key={d.id}
-              href={d.url}
-              target="_blank"
-              rel="noreferrer"
+          </div>
+        </details>
+        <details
+          className="panel company-analysis research-disclosure"
+          id="company-analysis"
+        >
+          <summary>
+            <span>
+              <Activity size={19} />
+              <strong>Company facts</strong>
+            </span>
+            <span className="disclosure-count">
+              {data?.evidence.length ? "Source backed" : "Check coverage"}
+              <ChevronDown size={17} />
+            </span>
+          </summary>
+          <div className="disclosure-content">
+            {data?.evidence.length ? (
+              data.evidence.slice(0, 2).map((e) => (
+                <div key={e.id}>
+                  <p>{e.facts}</p>
+                  <a href={e.url} target="_blank" rel="noreferrer">
+                    {e.title} · {e.date}
+                    <ArrowUpRight size={12} />
+                  </a>
+                </div>
+              ))
+            ) : (
+              <p>
+                {loading
+                  ? "Checking available research evidence…"
+                  : data?.documents.length
+                    ? "Company reports are available below. Ask FINN to read supported reports and explain the business, financial performance and risks."
+                    : "No business-analysis evidence has been loaded yet. Add an annual-report or earnings-call extract below; FINN will analyse that evidence instead of inventing company facts."}
+              </p>
+            )}
+            <button
+              className="button primary"
+              onClick={() =>
+                onAsk(
+                  "Summarise the business, latest available financial performance, and the main risks using only the supplied company reports. Give the dates and reporting basis, cite sources, and state missing evidence.",
+                )
+              }
             >
-              <FileText size={14} />
-              <span>
-                {d.title}
-                <small>
-                  {d.kind}
-                  {d.date ? " · " + d.date : ""}
-                </small>
-              </span>
-              <ArrowUpRight size={13} />
-            </a>
-          ))}
-          <p className="company-analysis-note">
-            {sourceError || data?.warning || data?.notice}
-          </p>
-        </section>
-        <section className="panel company-analysis">
-          <div className="eyebrow">BEYOND THE CHART</div>
-          <h2>What the evidence tells us</h2>
-          {data?.evidence.length ? (
-            data.evidence.slice(0, 2).map((e) => (
-              <div key={e.id}>
-                <p>{e.facts}</p>
-                <a href={e.url} target="_blank" rel="noreferrer">
-                  {e.title} · {e.date}
-                  <ArrowUpRight size={12} />
-                </a>
-              </div>
-            ))
-          ) : (
-            <p>
-              {loading
-                ? "Checking available research evidence…"
-                : data?.documents.length
-                  ? "Company reports are available below. Ask FINN to read supported reports and explain the business, financial performance and risks."
-                  : "No business-analysis evidence has been loaded yet. Add an annual-report or earnings-call extract below; FINN will analyse that evidence instead of inventing company facts."}
-            </p>
-          )}
-          <button
-            className="button primary"
-            onClick={() =>
-              onAsk(
-                "Summarise the business, latest available financial performance, and the main risks using only the supplied company reports. Give the dates and reporting basis, cite sources, and state missing evidence.",
-              )
-            }
-          >
-            Analyse company reports
-            <ArrowUpRight size={14} />
-          </button>
-          <small>
-            Google sign-in required for AI research. Financial evidence coverage
-            varies by company and exchange.
-          </small>
-        </section>
+              Analyse company reports
+              <ArrowUpRight size={14} />
+            </button>
+            <small>
+              Google sign-in required for AI research. Financial evidence
+              coverage varies by company and exchange.
+            </small>
+          </div>
+        </details>
       </div>
     </div>
   );

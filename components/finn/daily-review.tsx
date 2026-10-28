@@ -22,6 +22,8 @@ export function DailyReview({
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   useEffect(() => {
+    // Hydrate the browser-only review after mount; the server has no localStorage.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setBaseline({});
     setReviewed("");
     setMessage("");
@@ -32,14 +34,15 @@ export function DailyReview({
       if (saved?.baseline && typeof saved.baseline === "object") {
         const safe: ReviewBaseline = {};
         for (const [symbol, item] of Object.entries(saved.baseline)) {
-          const value = item as any;
+          const value = item as { date?: unknown; close?: unknown } | null;
           if (
             value &&
             typeof value.date === "string" &&
+            typeof value.close === "number" &&
             Number.isFinite(value.close) &&
             value.close > 0
           )
-            safe[symbol] = value;
+            safe[symbol] = { date: value.date, close: value.close };
         }
         setBaseline(safe);
         if (typeof saved.reviewed === "string") setReviewed(saved.reviewed);
@@ -119,7 +122,7 @@ export function DailyReview({
       <div className="daily-review-heading">
         <div>
           <div className="eyebrow">YOUR DAILY CHECK-IN</div>
-          <h2>What changed since your review?</h2>
+          <h2>Since your last review</h2>
           <p>
             {reviewed
               ? "Last reviewed " + new Date(reviewed).toLocaleString("en-IN")
@@ -145,20 +148,25 @@ export function DailyReview({
           </button>
         </div>
       </div>
-      <div className="data-health">
-        <strong>Price sessions</strong>
-        <span>
-          {dates.length
-            ? dates[0] === dates.at(-1)
-              ? dates[0]
-              : dates[0] + " to " + dates.at(-1)
-            : "No price data"}
-        </span>
-        <span>
-          {dates.length} of {symbols.length} companies have prices
-        </span>
-        <span>End-of-day data · no live quotes</span>
-      </div>
+      <details className="data-explainer">
+        <summary>
+          Price coverage <span aria-hidden="true">⌄</span>
+        </summary>
+        <div className="data-health">
+          <strong>Price sessions</strong>
+          <span>
+            {dates.length
+              ? dates[0] === dates.at(-1)
+                ? dates[0]
+                : dates[0] + " to " + dates.at(-1)
+              : "No price data"}
+          </span>
+          <span>
+            {dates.length} of {symbols.length} companies have prices
+          </span>
+          <span>End-of-day data · no live quotes</span>
+        </div>
+      </details>
       {changes.length ? (
         <div className="review-movers">
           {changes.slice(0, 6).map((c) => (
@@ -179,13 +187,11 @@ export function DailyReview({
         <p className="review-empty">
           {reviewed
             ? "No newer price sessions than your saved baseline. Refresh to check for available data."
-            : "Refresh your watchlist, then mark it reviewed. Your next visit will show changes from those prices."}
+            : "Save a baseline. Next time, see what changed."}
         </p>
       )}
       <p className="review-footnote">
-        Changes use unadjusted closing prices; splits and dividends can affect
-        comparisons. Review history stays in this browser. Exchange filings
-        below are a separate historical library.
+        Unadjusted prices · saved in this browser.
       </p>
       <p role="status" aria-live="polite">
         {message}

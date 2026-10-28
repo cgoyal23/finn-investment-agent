@@ -1,61 +1,50 @@
-# Current platform update
+# FINN architecture and decisions
 
-The second prototype uses standard Next.js as the primary runtime and is prepared for Vercel hosting at the user’s request. `npm run dev`, `npm run build` and `npm start` now use Next.js. Legacy Sites/Worker scripts remain available with the `:sites` suffix; the original hosting integration is retained rather than silently repurposed. Server environment access is request-scoped for the old Worker and uses process environment on Next.js.
-
-Direct Google Identity Services replaces application use of the previous hosting sign-in. See `GOOGLE_SIGN_IN_SETUP.md` for configuration and security. Production activation still needs the owner’s Google Client ID.
-
-# Architecture and decisions
-
-## Product point of view
-
-An investor's scarce resource is attention. The default interaction is a prioritised briefing with progressive detail: source-linked card → financial comparison → research question. A chart can generate a question, but does not manufacture a causal explanation.
-
-## Runtime
-
-Browser (React) → same-origin TypeScript API routes → Yahoo Finance / primary document hosts / Gemini. Sites packages the Vinext application for a Cloudflare Worker. Using one deployable keeps the first prototype reproducible; a separate Python service was considered during ideation but was not introduced.
-
-The browser receives no Gemini credential. Production uses a Sites secret; local development uses an ignored `.dev.vars`. API responses never include the key or the raw provider error body. Model errors are translated into useful, non-sensitive messages.
+FINN is a Next.js 16 / React 19 / TypeScript web app deployed on Vercel. The browser calls same-origin API routes for Google sessions, company lookup, prices, report discovery and Gemini research. The original Sites/Worker scripts remain a legacy build path; they are not the current production host or sign-in mechanism.
 
 ## Data and evidence
 
-The mock portfolio contains 18 companies in several sectors. The committed market snapshot is real historical EOD data, not synthetic chart points. It is loaded immediately so the demo does not depend on a third-party request. An explicit refresh attempts the upstream API and labels fallback records.
+The mock watchlist contains 18 Indian companies. A real, dated Yahoo Finance snapshot makes initial exploration reliable. Explicit refresh attempts the provider and retains the newest successful series if the provider fails. Both runtime refresh and the snapshot-maintenance command share the same daily-bar parser: it uses the exchange calendar, rejects invalid prices/volumes, deduplicates dates, and excludes an unfinished regular session. It does not provide live quotes.
 
-The announcement library is intentionally historical and curated. There is no pretence of a live exchange crawler. Each item preserves its source date, category, priority and a short reason for attention. High-priority results precede context; routine examples are hidden by default but inspectable.
+Company search extends beyond the mock watchlist. Results retain the selected exchange-qualified ticker and currency. The app does not silently substitute another company when prices or reports are unavailable. Search and report-provider failures have explicit fallbacks.
 
-Known-company research uses concise, manually reviewed fact records with document names, URLs, reporting periods and source locations. This is a prototype evidence store, not a fully automated RAG corpus. Research output is grounded in the supplied records; it does not imply the entire annual report was ingested for every question.
+The briefing is a curated historical disclosure library. Dates, source URLs, categories, priorities and reporting bases are preserved. Current-date filters can legitimately show no records. Known-company research uses concise reviewed fact extracts, not an assertion that every full report has been indexed.
 
-For a new ticker, the server discovers report links from Screener. It attempts to fetch a small number of annual-report or transcript PDFs and sends supported documents as inline Gemini input. Redirects and oversized downloads are rejected; publishers may still block requests. A pasted or uploaded text extract is the transparent fallback. A new company is not silently mapped to a demo company's answer.
+For other companies, Indian report discovery indexes primary-document links; US discovery attempts SEC records; selected international issuers have official investor-relations links. The server attempts at most two suitable documents. Downloads have time and byte limits, redirects are rejected, and PDFs must have a PDF signature. SEC HTML extracts disclose truncation. A user-provided text extract is the fallback when documents cannot be fetched. Provider availability and evidence coverage differ by exchange.
 
-## Research generation
+## Research request lifecycle
 
-1. Validate ticker, question length and extract size.
-2. Select company evidence, or discover primary documents for a new ticker.
-3. Include user-supplied source text, clearly marked as user-provided provenance.
-4. Ask Gemini for a concise JSON answer with approved source IDs and limitations.
-5. Reject unknown citation IDs and unsupported output shapes.
-6. Display the answer with source links and remaining evidence gaps.
+1. Require the configured Google session and a same-origin request.
+2. Validate JSON, ticker, question, extract and document-name limits.
+3. Select company evidence, discover suitable documents, or include the supplied extract with user-provided provenance.
+4. Ask the configured Gemini model for a concise JSON answer using only the supplied evidence.
+5. Validate the answer shape and citation membership. Citation URLs/titles come from the server’s source list; unknown inline IDs are rejected.
+6. Display the answer, sources and evidence gaps. Saving an answer keeps its submitted question and company, even if the input was subsequently edited.
 
-Document contents and user questions are treated as data, not authority to change application behavior. The prompt forbids secondary research, outside company knowledge, invented quotations and price predictions. Prompt instructions are a mitigation, not a guarantee against every model error.
+Company switches and newer requests abort/invalidate pending answers, document discovery and file reads. Late responses cannot appear under a different company. Text uploads accept `.txt` and `.md`, up to 200 KB and 50,000 characters. The server independently enforces request limits.
 
-Citation validation establishes that the cited source was supplied; it is not a proof that each sentence follows from that source. PDF page references generated by the model require review. A production version should verify quoted support against extracted page text and evaluate numerical claims separately.
+Citation checking establishes source membership, not semantic proof of each sentence. PDF locators generated by the model still need inspection. Company documents and questions are untrusted data, not authority to change app behavior. No price forecasts or buy/sell recommendations are generated intentionally.
 
-## Calculations and comparability
+## Identity, persistence and cost
 
-- Percent change: `(current / previous - 1) × 100`, with zero-denominator handling.
-- Volume ratio: latest volume divided by mean volume of the previous 20 trading sessions, excluding the latest day.
-- Chart ranges use trading-session counts (22/66/132), not exact calendar months; date boundaries remain visible.
-- Graph returns are unadjusted price returns. They exclude dividends and may reflect corporate actions.
-- The saved Infosys table uses USD million and consolidated IFRS measures. EBIT is explicitly labelled rather than passed off as EBITDA.
-- Guidance is matched to the full year it describes. An original-guidance comparison is not a comparison with revised guidance.
+Google Identity Services provides an ID token. The server verifies signature, issuer, audience, nonce and verified email before issuing a signed, HttpOnly, SameSite session cookie. Production cookies are Secure and host-scoped. FINN receives basic profile/email information, not Gmail inbox access or the Google password. Login challenges are created only for the login flow; valid challenges are reused so background account checks do not invalidate an open sign-in page.
 
-## State and cost
+Browser preferences, notes, saved insights, review baselines and game progress remain in localStorage. Signed-in accounts and the sample desk use separate keys. Saved desk records are validated before rendering. There is no cloud sync or durable server database.
 
-Browser preferences and notebook entries persist in localStorage, scoped separately to a verified Google user or the sample desk. Price refresh uses a 15-minute isolate-local cache. Research uses a one-hour isolate-local response cache, capped at 100 entries. These caches may be lost or duplicated across Worker isolates and are not durable.
+Research responses use an account-, company-, model-, extract- and document-name-specific one-hour memory cache. Requests are throttled per verified account (eight cache misses per minute per running instance). Market caches last 15 minutes. These are bounded, best-effort process caches; Vercel instances can have independent caches and counters. A durable shared quota would be needed for stronger production-wide budget enforcement.
 
-The research endpoint has per-identity, per-isolate request throttling. It is sufficient for owner-private prototyping, not abuse-proof public deployment. Before public release, add a durable quota/budget control, visitor authorization and maximum daily spend.
+Private Gemini and session credentials are server environment variables. They are not returned by status endpoints or included in client bundles. Local values belong in ignored `.env.local`; Vercel values belong in server environment settings.
 
-Current model usage is one configured Gemini model. A Flash-Lite extraction / stronger synthesis router is a planned experiment; it is not falsely represented as implemented. The first optimisation is avoiding repeated generation at all.
+## Calculations and learning
 
-## Deliberate exclusions
+- Price change: `(current / previous - 1) × 100`, with invalid/zero-denominator handling.
+- Volume ratio: latest volume divided by the mean of the previous 20 sessions, excluding the latest session.
+- Chart ranges: 22/66/132 trading sessions for 1M/3M/6M; displayed boundaries identify the actual dates.
+- Comparison: 2–4 companies, intersected dates and a shared starting value of 100. Provider-adjusted and unadjusted modes remain distinct; missing adjusted observations are excluded.
+- Drawdown: largest decline from an earlier peak, not endpoint return.
+- The Infosys results table preserves consolidated IFRS, USD million and EBIT/PAT labels. Guidance is matched to its stated full-year period.
+- Playroom games run locally with fictional figures. Daily Mix is deterministic by India calendar day; scores, streaks and bounded history are browser-local. Timers pause when the tab becomes hidden.
 
-No trading, buy/sell recommendations, live tick prices, native mobile app packaging, broker-news research, background notifications, durable document store, full exchange ingestion, or four-quarter automatic guidance ledger. These exclusions keep the first user journey working and reviewable.
+## Deliberate limits
+
+No execution of trades, continuous exchange ingestion, background notifications, native-app package, broker-news research, durable document store, automatic four-quarter guidance ledger or personalised investment advice. The project demonstrates a working evidence-led research workflow with visible data limitations.
